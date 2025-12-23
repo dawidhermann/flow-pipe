@@ -2,19 +2,48 @@
   "name": "flow-pipe",
   "version": "1.0.0",
   "type": "module",
-  "description": "A library for creating and managing request chains.",
-  "main": "index.js",
-  "tags": [
+  "description": "A powerful TypeScript library for creating and managing request chains. Flow-pipe allows you to chain multiple HTTP requests together, transform results, and handle responses with ease.",
+  "main": "./build/index.js",
+  "types": "./build/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./build/index.d.ts",
+      "import": "./build/index.js"
+    },
+    "./core/RequestAdapter": {
+      "types": "./build/core/RequestAdapter.d.ts",
+      "import": "./build/core/RequestAdapter.js"
+    },
+    "./core/models/RequestParams": {
+      "types": "./build/core/models/RequestParams.d.ts",
+      "import": "./build/core/models/RequestParams.js"
+    }
+  },
+  "files": [
+    "build/**/*.js",
+    "build/**/*.d.ts",
+    "build/**/*.js.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
     "flow",
     "pipe",
     "request",
     "chain",
     "manager",
-    "adapter"
+    "adapter",
+    "http",
+    "fetch",
+    "api",
+    "pipeline",
+    "typescript"
   ],
   "scripts": {
     "test": "node --test --import tsx/esm 'src/core/__test__/**/*.test.ts'",
-    "build": "tsc"
+    "build": "tsc",
+    "clean": "rm -rf build",
+    "prepublishOnly": "npm run clean && npm run build"
   },
   "author": "Dawid Hermann",
   "license": "MIT",
@@ -22,6 +51,7 @@
     "type": "git",
     "url": "https://github.com/dawidhermann/flow-pipe.git"
   },
+  "sideEffects": false,
   "devDependencies": {
     "tsx": "^4.7.0",
     "typescript": "^5.9.3"
