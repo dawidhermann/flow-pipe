@@ -1,6 +1,6 @@
-import RequestAdapter from "./RequestAdapter";
+import type RequestAdapter from "./RequestAdapter";
 import RequestFlow from "./RequestManager";
-import {
+import type {
   IRequestConfig,
   PipelineRequestStage,
   PipelineManagerStage,
@@ -18,7 +18,9 @@ export default class RequestChain<
     AdapterExecutionResult,
     AdapterRequestConfig extends IRequestConfig = IRequestConfig
   >(
-    stage: PipelineRequestStage<Out>,
+    stage:
+      | PipelineRequestStage<AdapterExecutionResult, Out, AdapterRequestConfig>
+      | PipelineManagerStage<Out, AdapterExecutionResult, AdapterRequestConfig>,
     adapter: RequestAdapter<AdapterExecutionResult, AdapterRequestConfig>
   ): RequestChain<Out, AdapterExecutionResult, AdapterRequestConfig> => {
     const requestChain: RequestChain<
@@ -27,19 +29,7 @@ export default class RequestChain<
       AdapterRequestConfig
     > = new RequestChain<Out, AdapterExecutionResult, AdapterRequestConfig>();
     requestChain.setRequestAdapter(adapter);
-    return requestChain.next(
-      stage as unknown as
-        | PipelineRequestStage<
-            AdapterExecutionResult,
-            Out,
-            AdapterRequestConfig
-          >
-        | PipelineManagerStage<
-            Out,
-            AdapterExecutionResult,
-            AdapterRequestConfig
-          >
-    );
+    return requestChain.next(stage);
   };
 
   public next = <NewOut>(
@@ -80,21 +70,13 @@ export default class RequestChain<
     }
   };
 
-  public async executeAll<Middle extends unknown[]>(): Promise<
-    [...Middle, Out]
-  > {
+  public async executeAll(): Promise<Out[]> {
     try {
-      const results: Array<Out | Middle> = await this.executeAllRequests(
-        this.requestList
-      );
-      const resultList: [...Middle, Out][] = [];
-      for (const pendingResult of results) {
-        resultList.push(pendingResult as [...Middle, Out]);
+      const results: Out[] = await this.executeAllRequests(this.requestList);
+      if (this.resultHandler && results.length > 0) {
+        this.resultHandler(results);
       }
-      if (this.resultHandler && results) {
-        this.resultHandler(resultList);
-      }
-      return resultList as [...Middle, Out];
+      return results;
     } catch (error) {
       if (this.errorHandler) {
         this.errorHandler(error);
@@ -159,9 +141,16 @@ export default class RequestChain<
         requestEntity,
         previousResult
       );
-      const result: Out = requestEntity.mapper
-        ? await requestEntity.mapper(requestResult as any)
-        : requestResult;
+      let result: Out = requestResult;
+      if (requestEntity.mapper) {
+        if (isPipelineRequestStage(requestEntity)) {
+          result = await requestEntity.mapper(
+            requestResult as unknown as AdapterExecutionResult
+          );
+        } else if (isPipelineManagerStage(requestEntity)) {
+          result = await requestEntity.mapper(requestResult as unknown as Out);
+        }
+      }
       requestEntityList[i].result = result as Out;
       results.push(result);
     }
@@ -176,14 +165,14 @@ export default class RequestChain<
   ): Promise<Out> => {
     if (isPipelineRequestStage(requestEntity)) {
       const { config } = requestEntity;
-      const requestConfig: IRequestConfig = // TODO fix type
+      const requestConfig: AdapterRequestConfig =
         typeof config === "function"
-          ? config(previousResult as AdapterExecutionResult)
-          : config;
+          ? (config(
+              previousResult as AdapterExecutionResult
+            ) as AdapterRequestConfig)
+          : (config as AdapterRequestConfig);
       const rawResult: AdapterExecutionResult =
-        await this.adapter.executeRequest(
-          requestConfig as AdapterRequestConfig
-        );
+        await this.adapter.executeRequest(requestConfig);
       return this.adapter.getResult(rawResult);
     } else if (isPipelineManagerStage(requestEntity)) {
       const { request } = requestEntity;
@@ -203,7 +192,7 @@ export function begin<
   AdapterRequestConfig extends IRequestConfig = IRequestConfig
 >(
   stage:
-    | PipelineRequestStage<Out, AdapterRequestConfig>
+    | PipelineRequestStage<AdapterExecutionResult, Out, AdapterRequestConfig>
     | PipelineManagerStage<Out, AdapterExecutionResult, AdapterRequestConfig>,
   adapter: RequestAdapter<AdapterExecutionResult, AdapterRequestConfig>
 ): RequestChain<Out, AdapterExecutionResult, AdapterRequestConfig> {
@@ -213,7 +202,7 @@ export function begin<
     AdapterRequestConfig
   > = new RequestChain<Out, AdapterExecutionResult, AdapterRequestConfig>();
   requestChain.setRequestAdapter(adapter);
-  return requestChain.next(stage as any);
+  return requestChain.next(stage);
 }
 
 function isPipelineRequestStage<

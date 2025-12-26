@@ -1,1 +1,0 @@
-{"version":3,"file":"RequestAdapter.js","sourceRoot":"","sources":["../../src/core/RequestAdapter.ts"],"names":[],"mappings":"AAEA,MAAM,CAAC,OAAO,OAAgB,cAAc;IAGnC,SAAS,CAAC,MAAW;QAC1B,OAAO,MAAM,CAAC;IAChB,CAAC;IAEM,cAAc,CAAC,aAA6B;QACjD,OAAO,IAAI,CAAC,aAAa,CAAC,aAAa,CAAC,CAAC;IAC3C,CAAC;CACF"}

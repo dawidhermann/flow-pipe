@@ -1,9 +1,9 @@
-import RequestAdapter from "./RequestAdapter";
-import {
+import type RequestAdapter from "./RequestAdapter";
+import type {
   PipelineManagerStage,
   PipelineRequestStage,
 } from "./models/RequestParams";
-import { ErrorHandler, ResultHandler } from "./models/Handlers";
+import type { ErrorHandler, ResultHandler } from "./models/Handlers";
 import type { IRequestConfig } from "./models/RequestParams";
 
 export default abstract class RequestFlow<
@@ -15,9 +15,9 @@ export default abstract class RequestFlow<
     | PipelineRequestStage<any, any, any>
     | PipelineManagerStage<any, any, any>
   )[] = [];
-  protected errorHandler: ErrorHandler;
-  protected resultHandler: ResultHandler;
-  protected finishHandler: VoidFunction;
+  protected errorHandler?: ErrorHandler;
+  protected resultHandler?: ResultHandler<Out | Out[]>;
+  protected finishHandler?: VoidFunction;
   protected adapter: RequestAdapter<AdapterExecutionResult, RequestConfig>;
 
   public abstract execute(): Promise<Out>;

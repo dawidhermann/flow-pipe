@@ -18,9 +18,10 @@ export interface IRequestConfig {
   [key: string]: any;
 }
 
-export type IRequestConfigFactory<Result> = (
-  previousResult?: Result
-) => IRequestConfig;
+export type IRequestConfigFactory<
+  Result,
+  AdapterRequestConfig extends IRequestConfig = IRequestConfig
+> = (previousResult?: Result) => AdapterRequestConfig;
 
 export interface BasePipelineStage<Result, Out = Result> {
   precondition?: () => boolean;
@@ -33,7 +34,7 @@ export interface PipelineRequestStage<
   Out = Result,
   AdapterRequestConfig extends IRequestConfig = IRequestConfig
 > extends BasePipelineStage<Result, Out> {
-  config: AdapterRequestConfig | IRequestConfigFactory<Result>;
+  config: AdapterRequestConfig | IRequestConfigFactory<Result, AdapterRequestConfig>;
 }
 
 export interface PipelineManagerStage<
