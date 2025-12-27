@@ -96,7 +96,7 @@ flow-pipe/
 - ✅ All existing code continues to work
 - ✅ Tests moved to `packages/core/src/__test__/`
 - ✅ Build scripts updated to handle workspaces
-- ⚠️ Old `src/core/` files still exist but are deprecated (can be removed)
+- ✅ Old `src/core/` directory removed (migration complete)
 
 ## Workspace Configuration
 

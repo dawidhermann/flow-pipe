@@ -1,7 +1,6 @@
 {
 	"compilerOptions": {
-		"baseUrl": "./src",
-		"rootDir": "./src",
+		"baseUrl": ".",
 		"outDir": "./build",
 		"module": "ESNext",
 		"target": "ES2020",
@@ -16,7 +15,10 @@
 		"moduleResolution": "node",
 		"declaration": true,
 		"esModuleInterop": true,
-		"allowSyntheticDefaultImports": true
+		"allowSyntheticDefaultImports": true,
+		"paths": {
+			"@flow-pipe/core": ["../core/src/index.ts"]
+		}
 	},
 	"include": ["./src/**/*"],
 	"exclude": ["./build"]

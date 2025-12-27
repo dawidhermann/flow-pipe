@@ -21,6 +21,6 @@
 			"@flow-pipe/adapter-fetch": ["./packages/adapter-fetch/src/index.ts"]
 		}
 	},
-	"include": ["./src/**/*"],
+	"include": ["./index.ts"],
 	"exclude": ["./build", "./packages"]
 }
