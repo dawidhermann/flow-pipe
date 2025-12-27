@@ -8,8 +8,8 @@ export default abstract class RequestAdapter<
     requestConfig: RequestConfig
   ): Promise<ExecutionResult>;
 
-  public getResult<T>(result: ExecutionResult | unknown): T {
-    return result as unknown as T;
+  public getResult<T extends ExecutionResult>(result: ExecutionResult): T {
+    return result as T;
   }
 
   public executeRequest(

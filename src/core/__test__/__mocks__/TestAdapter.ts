@@ -6,23 +6,23 @@ export type TestResponse = Response & {
 };
 
 export default class TestAdapter extends RequestAdapter<
-  TestResponse,
+  Response,
   IRequestConfig
 > {
   public async createRequest(
     requestConfig: IRequestConfig
-  ): Promise<TestResponse> {
+  ): Promise<Response> {
     const { data, url, ...rest } = requestConfig;
     const fetchConfig: any = { ...rest };
     if (data) {
       fetchConfig.data = JSON.stringify(data);
     }
     const result = await fetch(url, { ...fetchConfig, testParam: "test" });
-    return result as unknown as TestResponse;
+    return result;
   }
 
-  public getResult<T>(result: TestResponse): T {
+  public getResult<T extends Response>(result: Response): T {
     (result as any).customParam = "testParam";
-    return result as unknown as T;
+    return result as T;
   }
 }

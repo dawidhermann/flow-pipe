@@ -26,7 +26,7 @@ export type IRequestConfigFactory<
 export interface BasePipelineStage<Result, Out = Result> {
   precondition?: () => boolean;
   result?: Out;
-  mapper?: (result: Result) => Promise<Out>;
+  mapper?: (result: Result) => Out | Promise<Out>;
 }
 
 export interface PipelineRequestStage<

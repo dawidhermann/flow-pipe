@@ -156,13 +156,18 @@ export default class RequestChain<
       );
       let result: Out = requestResult;
       if (requestEntity.mapper) {
+        let mappedResult: Out | Promise<Out>;
         if (isPipelineRequestStage(requestEntity)) {
-          result = await requestEntity.mapper(
+          mappedResult = requestEntity.mapper(
             requestResult as unknown as AdapterExecutionResult
           );
         } else if (isPipelineManagerStage(requestEntity)) {
-          result = await requestEntity.mapper(requestResult as unknown as Out);
+          mappedResult = requestEntity.mapper(requestResult as unknown as Out);
+        } else {
+          mappedResult = result;
         }
+        result =
+          mappedResult instanceof Promise ? await mappedResult : mappedResult;
       }
       requestEntityList[i].result = result as Out;
       results.push(result);
@@ -186,11 +191,13 @@ export default class RequestChain<
           : (config as AdapterRequestConfig);
       const rawResult: AdapterExecutionResult =
         await this.adapter.executeRequest(requestConfig);
-      return this.adapter.getResult(rawResult);
+      return this.adapter.getResult(rawResult) as unknown as Out;
     } else if (isPipelineManagerStage(requestEntity)) {
       const { request } = requestEntity;
       const rawResult: Out = await request.execute();
-      return this.adapter.getResult(rawResult);
+      // For nested managers, the result is already processed, so we return it directly
+      // The adapter's getResult expects AdapterExecutionResult, but nested results are already Out
+      return rawResult;
     } else {
       throw new Error("Unknown type");
     }

@@ -30,7 +30,10 @@ export default abstract class RequestFlow<
   }
 
   public addAll(
-    requestList = []
+    requestList: Array<
+      | PipelineRequestStage<AdapterExecutionResult, Out, RequestConfig>
+      | PipelineManagerStage<Out, AdapterExecutionResult, RequestConfig>
+    > = []
   ): RequestFlow<Out, AdapterExecutionResult, RequestConfig> {
     this.requestList = this.requestList.concat(requestList);
     return this;
@@ -44,7 +47,7 @@ export default abstract class RequestFlow<
   }
 
   public withResultHandler(
-    resultHandler: ResultHandler
+    resultHandler: ResultHandler<Out | Out[]>
   ): RequestFlow<Out, AdapterExecutionResult, RequestConfig> {
     this.resultHandler = resultHandler;
     return this;
