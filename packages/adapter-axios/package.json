@@ -29,7 +29,7 @@
   "scripts": {
     "test": "node --test --import tsx/esm 'src/__test__/**/*.test.ts'",
     "test:watch": "node --test --import tsx/esm --watch 'src/__test__/**/*.test.ts'",
-    "build": "tsc",
+    "build": "tsup",
     "clean": "rm -rf build",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",

@@ -55,7 +55,7 @@
     "test:watch": "npm run test:watch --workspace=@flow-pipe/core",
     "test:coverage": "c8 npm test",
     "test:coverage:report": "c8 report --reporter=html",
-    "build": "npm run build:core && npm run build:adapter-fetch && npm run build:adapter-axios && npm run build:adapter-superagent && tsc",
+    "build": "npm run build:core && npm run build:adapter-fetch && npm run build:adapter-axios && npm run build:adapter-superagent && tsup",
     "build:core": "npm run build --workspace=@flow-pipe/core",
     "build:adapter-fetch": "npm run build --workspace=@flow-pipe/adapter-fetch",
     "build:adapter-axios": "npm run build --workspace=@flow-pipe/adapter-axios",
@@ -90,6 +90,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
     "prettier": "^3.7.4",
+    "tsup": "^8.0.0",
     "tsx": "^4.7.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.1"

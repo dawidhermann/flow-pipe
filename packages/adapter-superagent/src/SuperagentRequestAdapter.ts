@@ -11,7 +11,7 @@ export default class SuperagentRequestAdapter extends RequestAdapter<
   public async createRequest(
     requestConfig: SuperagentRequestConfig
   ): Promise<Response> {
-    const { url, method, data, headers, ...rest } = requestConfig;
+    const { url, method, data, headers } = requestConfig;
 
     // Create the request based on method
     let request: Request;
@@ -52,10 +52,6 @@ export default class SuperagentRequestAdapter extends RequestAdapter<
     if (data !== undefined) {
       request.send(data);
     }
-
-    // Apply any additional superagent-specific options from rest
-    // Note: superagent doesn't have a direct way to pass all options,
-    // but common ones can be handled individually if needed
 
     return request;
   }

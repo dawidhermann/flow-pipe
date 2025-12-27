@@ -28,7 +28,7 @@
   ],
   "scripts": {
     "test": "echo \"No tests specified\" && exit 0",
-    "build": "tsc",
+    "build": "tsup",
     "clean": "rm -rf build",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
