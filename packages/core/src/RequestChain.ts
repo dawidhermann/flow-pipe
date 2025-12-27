@@ -148,7 +148,7 @@ export default class RequestChain<
             AdapterExecutionResult,
             AdapterRequestConfig
           > = requestEntityList[i];
-      
+
       // Check precondition - skip stage if precondition returns false
       if (requestEntity.precondition && !requestEntity.precondition()) {
         const previousEntity = requestEntityList[i - 1];
@@ -158,7 +158,7 @@ export default class RequestChain<
         requestEntityList[i].result = previousResult as Out | undefined;
         continue;
       }
-      
+
       const previousEntity = requestEntityList[i - 1];
       const previousResult: Out | undefined = previousEntity?.result;
       const requestResult: Out = await this.executeSingle<Out>(

@@ -13,6 +13,7 @@ A powerful TypeScript library for creating and managing request chains. Flow-pip
 - 🎨 **Nested Chains**: Support for nested request managers
 - ⚡ **TypeScript First**: Full TypeScript support with type inference
 - 📦 **Tree-Shakeable**: Install only the adapter you need for smaller bundle sizes
+- 🔒 **Built-in SSRF Protection**: Automatic URL validation to prevent Server-Side Request Forgery attacks
 
 ## Table of Contents
 
@@ -23,6 +24,7 @@ A powerful TypeScript library for creating and managing request chains. Flow-pip
 - [Adapters](#adapters)
 - [API Reference](#api-reference)
 - [Common Patterns](#common-patterns)
+- [Security](#security)
 - [Troubleshooting](#troubleshooting)
 
 ## Installation
@@ -701,6 +703,28 @@ const data = await result.json(); // Standard Response object
 - Automatic JSON stringification for request bodies
 - Supports all Fetch API options
 
+**Important Notes:**
+- ⚠️ **No default timeout**: You must configure timeouts manually using `AbortSignal.timeout()` (Node.js 18+) or `AbortController`:
+
+```typescript
+// Set a 5-second timeout
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+const result = await RequestChain.begin(
+  {
+    config: {
+      url: 'https://api.example.com/users',
+      method: 'GET',
+      signal: controller.signal
+    }
+  },
+  adapter
+).execute();
+
+clearTimeout(timeoutId);
+```
+
 #### 2. Axios Adapter
 
 The Axios adapter provides automatic JSON parsing, better error handling, and request/response interceptors.
@@ -745,6 +769,22 @@ console.log(result.status); // HTTP status code
 - Query parameters via `params` option
 - Request cancellation support
 
+**Important Notes:**
+- ⚠️ **No default timeout**: You must configure timeouts manually using the `timeout` option:
+
+```typescript
+const result = await RequestChain.begin(
+  {
+    config: {
+      url: 'https://api.example.com/users',
+      method: 'GET',
+      timeout: 5000 // 5 second timeout
+    }
+  },
+  adapter
+).execute();
+```
+
 #### 3. Superagent Adapter
 
 The Superagent adapter offers a lightweight alternative with excellent browser and Node.js support.
@@ -787,6 +827,22 @@ console.log(result.status); // HTTP status code
 - Cross-platform (browser & Node.js)
 - Lightweight bundle size
 - Fluent API design
+
+**Important Notes:**
+- ⚠️ **No default timeout**: You must configure timeouts manually using the `timeout` option:
+
+```typescript
+const result = await RequestChain.begin(
+  {
+    config: {
+      url: 'https://api.example.com/users',
+      method: 'GET',
+      timeout: 5000 // 5 second timeout
+    }
+  },
+  adapter
+).execute();
+```
 
 ### Importing Adapters
 
@@ -1109,6 +1165,161 @@ interface ResultHandler<T = unknown> {
   (result: T): void;
 }
 ```
+
+## Security
+
+### SSRF Protection
+
+flow-pipe includes built-in protection against Server-Side Request Forgery (SSRF) attacks. All URLs are automatically validated before making requests.
+
+#### Default Protection
+
+By default, all adapters block potentially dangerous URLs:
+
+- ✅ **Blocks private IP addresses**: `10.x.x.x`, `172.16-31.x.x`, `192.168.x.x`, `169.254.x.x`
+- ✅ **Blocks localhost addresses**: `localhost`, `127.0.0.1`, `::1`
+- ✅ **Restricts protocols**: Only `http://` and `https://` are allowed
+- ✅ **Validates URL format**: Ensures URLs are properly formatted
+
+```typescript
+import { FetchRequestAdapter, SSRFError } from 'flow-pipe';
+
+const adapter = new FetchRequestAdapter();
+
+try {
+  await RequestChain.begin(
+    { config: { url: 'http://localhost:3000', method: 'GET' } },
+    adapter
+  ).execute();
+} catch (error) {
+  if (error instanceof SSRFError) {
+    console.error('SSRF protection blocked request:', error.message);
+    // Error: "Localhost addresses are not allowed for security reasons..."
+  }
+}
+```
+
+#### Configuration Options
+
+For development or testing scenarios, you can configure validation:
+
+```typescript
+import { FetchRequestAdapter, UrlValidationOptions } from 'flow-pipe';
+
+// Allow localhost for local development
+const devAdapter = new FetchRequestAdapter({
+  allowLocalhost: true
+});
+
+// Allow private IPs (use with extreme caution)
+const internalAdapter = new FetchRequestAdapter({
+  allowPrivateIPs: true
+});
+
+// Custom protocol allowlist
+const customAdapter = new FetchRequestAdapter({
+  allowedProtocols: ['http:', 'https:', 'ws:', 'wss:']
+});
+```
+
+**⚠️ WARNING**: Disabling or relaxing URL validation can expose your application to SSRF attacks. Only do this if you fully understand the security implications and trust all URL inputs.
+
+#### Disabling Validation (Not Recommended)
+
+```typescript
+// ⚠️ SECURITY RISK: Only use in trusted environments
+const unsafeAdapter = new FetchRequestAdapter({
+  disableValidation: true
+});
+```
+
+For more security information, see [SECURITY.md](./SECURITY.md).
+
+### Request Timeouts
+
+**Important**: flow-pipe does **not** set default timeouts for requests. You must configure timeouts manually to prevent requests from hanging indefinitely.
+
+#### Fetch Adapter Timeout
+
+```typescript
+import { FetchRequestAdapter } from 'flow-pipe';
+
+const adapter = new FetchRequestAdapter();
+
+// Node.js 18+ - Using AbortSignal.timeout()
+const result = await RequestChain.begin(
+  {
+    config: {
+      url: 'https://api.example.com/users',
+      method: 'GET',
+      signal: AbortSignal.timeout(5000) // 5 second timeout
+    }
+  },
+  adapter
+).execute();
+
+// Browser or older Node.js - Using AbortController
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+try {
+  const result = await RequestChain.begin(
+    {
+      config: {
+        url: 'https://api.example.com/users',
+        method: 'GET',
+        signal: controller.signal
+      }
+    },
+    adapter
+  ).execute();
+} finally {
+  clearTimeout(timeoutId);
+}
+```
+
+#### Axios Adapter Timeout
+
+```typescript
+import { AxiosRequestAdapter } from 'flow-pipe/adapter-axios';
+
+const adapter = new AxiosRequestAdapter();
+
+const result = await RequestChain.begin(
+  {
+    config: {
+      url: 'https://api.example.com/users',
+      method: 'GET',
+      timeout: 5000 // 5 second timeout (in milliseconds)
+    }
+  },
+  adapter
+).execute();
+```
+
+#### Superagent Adapter Timeout
+
+```typescript
+import { SuperagentRequestAdapter } from 'flow-pipe/adapter-superagent';
+
+const adapter = new SuperagentRequestAdapter();
+
+const result = await RequestChain.begin(
+  {
+    config: {
+      url: 'https://api.example.com/users',
+      method: 'GET',
+      timeout: 5000 // 5 second timeout (in milliseconds)
+    }
+  },
+  adapter
+).execute();
+```
+
+**Best Practice**: Always set appropriate timeouts based on your use case:
+- **API requests**: 5-30 seconds
+- **File uploads**: 30-120 seconds
+- **Long-running operations**: Configure per-operation
 
 ## Troubleshooting
 
