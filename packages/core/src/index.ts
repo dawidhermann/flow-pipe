@@ -15,3 +15,7 @@ export type {
 
 export type { ErrorHandler, ResultHandler } from "./models/Handlers";
 
+// Security utilities
+export { validateUrl, SSRFError } from "./utils/urlValidator";
+export type { UrlValidationOptions } from "./utils/urlValidator";
+

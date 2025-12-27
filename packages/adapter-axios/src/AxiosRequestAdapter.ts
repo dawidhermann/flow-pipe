@@ -1,5 +1,5 @@
 import { RequestAdapter } from "@flow-pipe/core";
-import type { IRequestConfig } from "@flow-pipe/core";
+import type { IRequestConfig, UrlValidationOptions } from "@flow-pipe/core";
 import axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
 
 export type AxiosRequestConfigType = IRequestConfig & Partial<AxiosRequestConfig>;
@@ -8,6 +8,10 @@ export default class AxiosRequestAdapter extends RequestAdapter<
   AxiosResponse,
   AxiosRequestConfigType
 > {
+  constructor(urlValidationOptions?: UrlValidationOptions) {
+    super(urlValidationOptions);
+  }
+
   public async createRequest(
     requestConfig: AxiosRequestConfigType
   ): Promise<AxiosResponse> {

@@ -1,5 +1,5 @@
 import { RequestAdapter } from "@flow-pipe/core";
-import type { IRequestConfig } from "@flow-pipe/core";
+import type { IRequestConfig, UrlValidationOptions } from "@flow-pipe/core";
 import superagent, { type Response, type Request } from "superagent";
 
 export type SuperagentRequestConfig = IRequestConfig & {};
@@ -8,6 +8,10 @@ export default class SuperagentRequestAdapter extends RequestAdapter<
   Response,
   SuperagentRequestConfig
 > {
+  constructor(urlValidationOptions?: UrlValidationOptions) {
+    super(urlValidationOptions);
+  }
+
   public async createRequest(
     requestConfig: SuperagentRequestConfig
   ): Promise<Response> {
