@@ -1,0 +1,67 @@
+{
+  "name": "@flow-pipe/adapter-superagent",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Superagent adapter for flow-pipe",
+  "main": "./build/index.js",
+  "types": "./build/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./build/index.d.ts",
+      "import": "./build/index.js"
+    }
+  },
+  "files": [
+    "build/**/*.js",
+    "build/**/*.d.ts",
+    "build/**/*.js.map",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "flow-pipe",
+    "request",
+    "adapter",
+    "superagent",
+    "http",
+    "typescript"
+  ],
+  "scripts": {
+    "test": "echo \"No tests specified\" && exit 0",
+    "build": "tsc",
+    "clean": "rm -rf build",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "npm run clean && npm run lint && npm run type-check && npm run build"
+  },
+  "author": "Dawid Hermann",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dawidhermann/flow-pipe.git",
+    "directory": "packages/adapter-superagent"
+  },
+  "sideEffects": false,
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "peerDependencies": {
+    "@flow-pipe/core": "^1.0.0",
+    "superagent": "^8.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@flow-pipe/core": "*",
+    "@typescript-eslint/eslint-plugin": "^8.50.1",
+    "@typescript-eslint/parser": "^8.50.1",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.7.4",
+    "superagent": "^8.1.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.50.1"
+  }
+}
+
