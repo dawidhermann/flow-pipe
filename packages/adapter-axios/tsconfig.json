@@ -1,0 +1,26 @@
+{
+	"compilerOptions": {
+		"baseUrl": ".",
+		"outDir": "./build",
+		"module": "ESNext",
+		"target": "ES2020",
+		"lib": ["ES2020", "dom"],
+		"sourceMap": true,
+		"noImplicitAny": true,
+		"noImplicitReturns": true,
+		"noImplicitThis": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"strictNullChecks": true,
+		"moduleResolution": "node",
+		"declaration": true,
+		"esModuleInterop": true,
+		"allowSyntheticDefaultImports": true,
+		"paths": {
+			"@flow-pipe/core": ["../core/src/index.ts"]
+		}
+	},
+	"include": ["./src/**/*"],
+	"exclude": ["./build"]
+}
+

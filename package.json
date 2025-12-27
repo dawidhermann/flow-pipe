@@ -20,6 +20,10 @@
     "./adapter-fetch": {
       "types": "./packages/adapter-fetch/build/index.d.ts",
       "import": "./packages/adapter-fetch/build/index.js"
+    },
+    "./adapter-axios": {
+      "types": "./packages/adapter-axios/build/index.d.ts",
+      "import": "./packages/adapter-axios/build/index.js"
     }
   },
   "files": [
@@ -47,9 +51,10 @@
     "test:watch": "npm run test:watch --workspace=@flow-pipe/core",
     "test:coverage": "c8 npm test",
     "test:coverage:report": "c8 report --reporter=html",
-    "build": "npm run build:core && npm run build:adapter-fetch && tsc",
+    "build": "npm run build:core && npm run build:adapter-fetch && npm run build:adapter-axios && tsc",
     "build:core": "npm run build --workspace=@flow-pipe/core",
     "build:adapter-fetch": "npm run build --workspace=@flow-pipe/adapter-fetch",
+    "build:adapter-axios": "npm run build --workspace=@flow-pipe/adapter-axios",
     "clean": "rm -rf build && npm run clean --workspaces",
     "lint": "npm run lint --workspaces && eslint index.ts",
     "lint:fix": "npm run lint:fix --workspaces && eslint index.ts --fix",
