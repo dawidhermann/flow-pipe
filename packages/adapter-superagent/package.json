@@ -27,7 +27,8 @@
     "typescript"
   ],
   "scripts": {
-    "test": "echo \"No tests specified\" && exit 0",
+    "test": "node --test --import tsx/esm 'src/__test__/**/*.test.ts'",
+    "test:watch": "node --test --import tsx/esm --watch 'src/__test__/**/*.test.ts'",
     "build": "tsc",
     "clean": "rm -rf build",
     "lint": "eslint src --ext .ts",
@@ -60,8 +61,8 @@
     "eslint-plugin-prettier": "^5.5.4",
     "prettier": "^3.7.4",
     "superagent": "^8.1.2",
+    "tsx": "^4.7.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.50.1"
   }
 }
-
