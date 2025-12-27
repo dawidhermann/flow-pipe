@@ -74,8 +74,8 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "@flow-pipe/core": "workspace:*",
-    "@flow-pipe/adapter-fetch": "workspace:*"
+    "@flow-pipe/core": "*",
+    "@flow-pipe/adapter-fetch": "*"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
