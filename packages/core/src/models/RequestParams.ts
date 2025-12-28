@@ -141,6 +141,13 @@ export interface BasePipelineStage<Result, Out = Result> {
    * Can return a value or a promise.
    */
   mapper?: (result: Result) => Out | Promise<Out>;
+
+  /**
+   * Optional result interceptor function to process the stage result.
+   * Can be used to perform additional actions on the result.
+   * @param result - The result from the stage
+   */
+  resultInterceptor?: (result: Out) => void | Promise<void>;
 }
 
 /**

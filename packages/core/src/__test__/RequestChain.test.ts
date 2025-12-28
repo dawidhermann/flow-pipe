@@ -983,3 +983,285 @@ describe("Precondition test", () => {
     assert.strictEqual(results[1].body, JSON.stringify(thirdUser));
   });
 });
+
+describe("Result interceptor test", () => {
+  test("Basic result interceptor execution", async () => {
+    resetFetchMock();
+    const response: string = JSON.stringify(firstUser);
+    fetchMock.mockResponseOnce(response);
+    const interceptor = createMockFn();
+    const result = await RequestChain.begin<
+      TestRequestResult<typeof firstUser>,
+      Response,
+      IRequestConfig
+    >(
+      {
+        config: { url: "http://example.com/users", method: "GET" },
+        resultInterceptor: (result) => {
+          interceptor(result);
+        },
+      },
+      new TestAdapter()
+    ).execute();
+    assert.ok(interceptor.toHaveBeenCalled());
+    assert.strictEqual(interceptor.calls.length, 1);
+    assert.strictEqual(interceptor.calls[0][0], result);
+    assert.strictEqual(result.body, response);
+  });
+
+  test("Result interceptor with mapper - receives mapped result", async () => {
+    resetFetchMock();
+    const response: string = JSON.stringify(firstUser);
+    fetchMock.mockResponseOnce(response);
+    const interceptor = createMockFn();
+    const result = await RequestChain.begin<
+      typeof firstUser,
+      Response,
+      IRequestConfig
+    >(
+      {
+        config: { url: "http://example.com/users", method: "GET" },
+        mapper: (result: Response) => JSON.parse(result.body as any),
+        resultInterceptor: (result) => {
+          interceptor(result);
+        },
+      },
+      new TestAdapter()
+    ).execute();
+    assert.ok(interceptor.toHaveBeenCalled());
+    assert.strictEqual(interceptor.calls.length, 1);
+    // Interceptor should receive the mapped result, not the raw response
+    assert.deepStrictEqual(interceptor.calls[0][0], firstUser);
+    assert.deepStrictEqual(result, firstUser);
+  });
+
+  test("Result interceptor in multiple stages", async () => {
+    resetFetchMock();
+    fetchMock
+      .once(JSON.stringify(firstUser))
+      .once(JSON.stringify(secondUser))
+      .once(JSON.stringify(thirdUser));
+    const interceptor1 = createMockFn();
+    const interceptor2 = createMockFn();
+    const interceptor3 = createMockFn();
+    const result = await RequestChain.begin<
+      TestRequestResult<typeof firstUser>,
+      Response,
+      IRequestConfig
+    >(
+      {
+        config: { url: "http://example.com/users/1", method: "GET" },
+        resultInterceptor: (result) => {
+          interceptor1(result);
+        },
+      },
+      new TestAdapter()
+    )
+      .next<TestRequestResult<typeof secondUser>>({
+        config: { url: "http://example.com/users/2", method: "GET" },
+        resultInterceptor: (result) => {
+          interceptor2(result);
+        },
+      })
+      .next<TestRequestResult<typeof thirdUser>>({
+        config: { url: "http://example.com/users/3", method: "GET" },
+        resultInterceptor: (result) => {
+          interceptor3(result);
+        },
+      })
+      .execute();
+    assert.ok(interceptor1.toHaveBeenCalled());
+    assert.ok(interceptor2.toHaveBeenCalled());
+    assert.ok(interceptor3.toHaveBeenCalled());
+    assert.strictEqual(interceptor1.calls.length, 1);
+    assert.strictEqual(interceptor2.calls.length, 1);
+    assert.strictEqual(interceptor3.calls.length, 1);
+    assert.strictEqual(result.body, JSON.stringify(thirdUser));
+  });
+
+  test("Async result interceptor execution", async () => {
+    resetFetchMock();
+    const response: string = JSON.stringify(firstUser);
+    fetchMock.mockResponseOnce(response);
+    let interceptorResolved = false;
+    const interceptor = createMockFn();
+    const result = await RequestChain.begin<
+      TestRequestResult<typeof firstUser>,
+      Response,
+      IRequestConfig
+    >(
+      {
+        config: { url: "http://example.com/users", method: "GET" },
+        resultInterceptor: async (result) => {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          interceptorResolved = true;
+          interceptor(result);
+        },
+      },
+      new TestAdapter()
+    ).execute();
+    assert.ok(interceptorResolved);
+    assert.ok(interceptor.toHaveBeenCalled());
+    assert.strictEqual(result.body, response);
+  });
+
+  test("Result interceptor execution order - after mapper", async () => {
+    resetFetchMock();
+    const response: string = JSON.stringify(firstUser);
+    fetchMock.mockResponseOnce(response);
+    const executionOrder: string[] = [];
+    const result = await RequestChain.begin<
+      typeof firstUser,
+      Response,
+      IRequestConfig
+    >(
+      {
+        config: { url: "http://example.com/users", method: "GET" },
+        mapper: (result: Response) => {
+          executionOrder.push("mapper");
+          return JSON.parse(result.body as any);
+        },
+        resultInterceptor: (result) => {
+          executionOrder.push("interceptor");
+          assert.deepStrictEqual(result, firstUser);
+        },
+      },
+      new TestAdapter()
+    ).execute();
+    assert.deepStrictEqual(executionOrder, ["mapper", "interceptor"]);
+    assert.deepStrictEqual(result, firstUser);
+  });
+
+  test("Result interceptor in executeAll()", async () => {
+    resetFetchMock();
+    fetchMock
+      .once(JSON.stringify(firstUser))
+      .once(JSON.stringify(secondUser))
+      .once(JSON.stringify(thirdUser));
+    const interceptor1 = createMockFn();
+    const interceptor2 = createMockFn();
+    const interceptor3 = createMockFn();
+    const results = await RequestChain.begin<
+      TestRequestResult<typeof firstUser>,
+      Response,
+      IRequestConfig
+    >(
+      {
+        config: { url: "http://example.com/users/1", method: "GET" },
+        resultInterceptor: (result) => {
+          interceptor1(result);
+        },
+      },
+      new TestAdapter()
+    )
+      .next<TestRequestResult<typeof secondUser>>({
+        config: { url: "http://example.com/users/2", method: "GET" },
+        resultInterceptor: (result) => {
+          interceptor2(result);
+        },
+      })
+      .next<TestRequestResult<typeof thirdUser>>({
+        config: { url: "http://example.com/users/3", method: "GET" },
+        resultInterceptor: (result) => {
+          interceptor3(result);
+        },
+      })
+      .executeAll();
+    assert.ok(interceptor1.toHaveBeenCalled());
+    assert.ok(interceptor2.toHaveBeenCalled());
+    assert.ok(interceptor3.toHaveBeenCalled());
+    assert.strictEqual(interceptor1.calls.length, 1);
+    assert.strictEqual(interceptor2.calls.length, 1);
+    assert.strictEqual(interceptor3.calls.length, 1);
+    assert.strictEqual(results.length, 3);
+    assert.strictEqual(interceptor1.calls[0][0], results[0]);
+    assert.strictEqual(interceptor2.calls[0][0], results[1]);
+    assert.strictEqual(interceptor3.calls[0][0], results[2]);
+  });
+
+  test("Result interceptor with skipped stage - should not be called", async () => {
+    resetFetchMock();
+    fetchMock.once(JSON.stringify(firstUser)).once(JSON.stringify(thirdUser));
+    const interceptor1 = createMockFn();
+    const interceptor2 = createMockFn();
+    const interceptor3 = createMockFn();
+    const result = await RequestChain.begin<
+      TestRequestResult<typeof firstUser>,
+      Response,
+      IRequestConfig
+    >(
+      {
+        config: { url: "http://example.com/users/1", method: "GET" },
+        resultInterceptor: (result) => {
+          interceptor1(result);
+        },
+      },
+      new TestAdapter()
+    )
+      .next<TestRequestResult<typeof secondUser>>({
+        config: { url: "http://example.com/users/2", method: "GET" },
+        precondition: () => false, // Skip this stage
+        resultInterceptor: (result) => {
+          interceptor2(result);
+        },
+      })
+      .next<TestRequestResult<typeof thirdUser>>({
+        config: { url: "http://example.com/users/3", method: "GET" },
+        resultInterceptor: (result) => {
+          interceptor3(result);
+        },
+      })
+      .execute();
+    assert.ok(interceptor1.toHaveBeenCalled());
+    assert.ok(!interceptor2.toHaveBeenCalled()); // Should not be called for skipped stage
+    assert.ok(interceptor3.toHaveBeenCalled());
+    assert.strictEqual(result.body, JSON.stringify(thirdUser));
+  });
+
+  test("Result interceptor with mapper and precondition", async () => {
+    resetFetchMock();
+    const response: string = JSON.stringify(firstUser);
+    fetchMock.mockResponseOnce(response);
+    const interceptor = createMockFn();
+    const result = await RequestChain.begin<
+      typeof firstUser,
+      Response,
+      IRequestConfig
+    >(
+      {
+        config: { url: "http://example.com/users", method: "GET" },
+        precondition: () => true,
+        mapper: (result: Response) => JSON.parse(result.body as any),
+        resultInterceptor: (result) => {
+          interceptor(result);
+          assert.deepStrictEqual(result, firstUser);
+        },
+      },
+      new TestAdapter()
+    ).execute();
+    assert.ok(interceptor.toHaveBeenCalled());
+    assert.deepStrictEqual(result, firstUser);
+  });
+
+  test("Result interceptor can access result properties", async () => {
+    resetFetchMock();
+    const response: string = JSON.stringify(firstUser);
+    fetchMock.mockResponseOnce(response);
+    let interceptedBody: string | undefined;
+    const result = await RequestChain.begin<
+      TestRequestResult<typeof firstUser>,
+      Response,
+      IRequestConfig
+    >(
+      {
+        config: { url: "http://example.com/users", method: "GET" },
+        resultInterceptor: (result) => {
+          interceptedBody = result.body;
+        },
+      },
+      new TestAdapter()
+    ).execute();
+    assert.strictEqual(interceptedBody, response);
+    assert.strictEqual(interceptedBody, result.body);
+  });
+});

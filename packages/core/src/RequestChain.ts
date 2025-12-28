@@ -249,6 +249,9 @@ export default class RequestChain<
         result =
           mappedResult instanceof Promise ? await mappedResult : mappedResult;
       }
+      if (requestEntity.resultInterceptor) {
+        await requestEntity.resultInterceptor(result);
+      }
       requestEntityList[i].result = result as Out;
       results.push(result);
     }
@@ -283,10 +286,7 @@ export default class RequestChain<
 
       // If retry config is provided, wrap execution in retry logic
       if (retry) {
-        return this.executeWithRetry<Out>(
-          requestConfig,
-          retry
-        );
+        return this.executeWithRetry<Out>(requestConfig, retry);
       }
 
       // No retry config, execute normally
@@ -318,8 +318,7 @@ export default class RequestChain<
     retryConfig: RetryConfig
   ): Promise<Out> => {
     const maxRetries = retryConfig.maxRetries ?? 3;
-    const retryCondition =
-      retryConfig.retryCondition ?? defaultRetryCondition;
+    const retryCondition = retryConfig.retryCondition ?? defaultRetryCondition;
     let lastError: Error | undefined;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {

@@ -124,6 +124,22 @@ await RequestChain.begin(...)
   .execute();
 ```
 
+**6. Result Interceptors for Side Effects**
+```typescript
+.next({
+  config: { url: 'https://api.example.com/users/1', method: 'GET' },
+  mapper: async (result) => {
+    const data = await result.json();
+    return data.id; // Transform result
+  },
+  resultInterceptor: async (mappedResult) => {
+    // Perform side effects: logging, caching, analytics
+    console.log('User ID fetched:', mappedResult);
+    await cache.set(`user:${mappedResult}`, mappedResult);
+  }
+})
+```
+
 ### Response Formats
 
 Different adapters return different response formats:
@@ -183,6 +199,7 @@ console.log(await userData.json());
 
 - 🔗 **Chain Requests**: Link multiple HTTP requests in sequence
 - 🔄 **Result Transformation**: Map and transform request results
+- 🎬 **Result Interceptors**: Perform side effects on results (logging, caching, analytics)
 - 📊 **Previous Result Access**: Each step can use the previous request's result
 - 🎯 **Handler Support**: Result, error, and finish handlers
 - 🔁 **Automatic Retry**: Configurable retry mechanism with exponential backoff
@@ -423,6 +440,164 @@ console.log(await result.json());
 ```
 
 **Note**: Mappers can be synchronous or asynchronous. If you need to parse JSON or perform async operations, use `async/await`.
+
+### Result Interceptors
+
+Result interceptors allow you to perform side effects or additional processing on the result of each stage in your request chain. Unlike mappers, interceptors don't transform the result - they receive the final result (after any mapper has been applied) and can perform actions like logging, caching, or validation.
+
+**Key differences from mappers:**
+- **Mappers** transform the result and change what gets passed to the next stage
+- **Interceptors** receive the result but don't change it - they're for side effects only
+
+#### Basic Result Interceptor
+
+```typescript
+import { RequestChain, FetchRequestAdapter } from 'flow-pipe';
+
+const adapter = new FetchRequestAdapter();
+
+const result = await RequestChain.begin(
+  {
+    config: { url: 'https://api.example.com/users/1', method: 'GET' },
+    resultInterceptor: (result) => {
+      console.log('First request completed:', result);
+      // Perform side effects: logging, caching, analytics, etc.
+    }
+  },
+  adapter
+)
+  .next({
+    config: { url: 'https://api.example.com/users/1/posts', method: 'GET' },
+    resultInterceptor: (result) => {
+      console.log('Second request completed:', result);
+    }
+  })
+  .execute();
+```
+
+#### Result Interceptor with Mapper
+
+Interceptors receive the **mapped result**, not the raw response. This means if you use a mapper, the interceptor will receive the transformed value:
+
+```typescript
+const result = await RequestChain.begin(
+  {
+    config: { url: 'https://api.example.com/users/1', method: 'GET' },
+    mapper: async (result) => {
+      const data = await result.json();
+      return data.id; // Transform to just the ID
+    },
+    resultInterceptor: (mappedResult) => {
+      // Interceptor receives the mapped result (the ID), not the raw response
+      console.log('User ID:', mappedResult); // Logs: User ID: 1
+    }
+  },
+  adapter
+).execute();
+```
+
+#### Async Result Interceptors
+
+Interceptors can be asynchronous, allowing you to perform async operations like saving to a database or calling another API:
+
+```typescript
+const result = await RequestChain.begin(
+  {
+    config: { url: 'https://api.example.com/users/1', method: 'GET' },
+    resultInterceptor: async (result) => {
+      const data = await result.json();
+      // Save to cache, database, or perform other async operations
+      await cache.set(`user:${data.id}`, data);
+      await analytics.track('user_fetched', { userId: data.id });
+    }
+  },
+  adapter
+).execute();
+```
+
+#### Execution Order
+
+Interceptors are executed **after** mappers but **before** the result is stored and passed to the next stage:
+
+1. Request executes
+2. Mapper transforms the result (if present)
+3. **Interceptor receives the mapped result** (if present)
+4. Result is stored and passed to the next stage
+
+```typescript
+const executionOrder: string[] = [];
+
+const result = await RequestChain.begin(
+  {
+    config: { url: 'https://api.example.com/users/1', method: 'GET' },
+    mapper: async (result) => {
+      executionOrder.push('mapper');
+      const data = await result.json();
+      return data.id;
+    },
+    resultInterceptor: (result) => {
+      executionOrder.push('interceptor');
+      console.log('Intercepted result:', result);
+    }
+  },
+  adapter
+).execute();
+
+console.log(executionOrder); // ['mapper', 'interceptor']
+```
+
+#### Use Cases
+
+Result interceptors are useful for:
+
+- **Logging**: Track request results for debugging or monitoring
+- **Caching**: Store results in cache for later use
+- **Analytics**: Track API usage and performance metrics
+- **Validation**: Verify result structure or content
+- **Side effects**: Trigger notifications, update UI state, etc.
+
+```typescript
+const result = await RequestChain.begin(
+  {
+    config: { url: 'https://api.example.com/users/1', method: 'GET' },
+    resultInterceptor: async (result) => {
+      const data = await result.json();
+      
+      // Multiple side effects
+      logger.info('User fetched', { userId: data.id });
+      await cache.set(`user:${data.id}`, data, { ttl: 3600 });
+      analytics.track('api_call', { endpoint: '/users/1', userId: data.id });
+      
+      // Validate result structure
+      if (!data.id || !data.name) {
+        throw new Error('Invalid user data structure');
+      }
+    }
+  },
+  adapter
+).execute();
+```
+
+#### Skipped Stages
+
+If a stage is skipped due to a precondition returning `false`, the result interceptor will **not** be called:
+
+```typescript
+const interceptorCalled = false;
+
+const result = await RequestChain.begin(
+  {
+    config: { url: 'https://api.example.com/users/1', method: 'GET' },
+    precondition: () => false, // Stage will be skipped
+    resultInterceptor: (result) => {
+      interceptorCalled = true; // This will never be called
+    }
+  },
+  adapter
+).execute();
+```
+
+**Note**: Result interceptors are executed for each stage that successfully completes. They receive the final result after any mapper transformation, making them perfect for side effects that don't need to modify the result itself.
 
 ### POST, PUT, DELETE, and Other Methods
 
@@ -1569,6 +1744,7 @@ interface PipelineRequestStage<Result, Out = Result, AdapterRequestConfig extend
   config: AdapterRequestConfig | IRequestConfigFactory<Result, AdapterRequestConfig>;
   precondition?: () => boolean;
   mapper?: (result: Result) => Out | Promise<Out>;
+  resultInterceptor?: (result: Out) => void | Promise<void>; // Optional result interceptor for side effects
   retry?: RetryConfig; // Optional retry configuration
 }
 ```
@@ -1592,6 +1768,7 @@ interface PipelineManagerStage<Out, AdapterExecutionResult, AdapterRequestConfig
   request: RequestManager<Out, AdapterExecutionResult, AdapterRequestConfig>;
   precondition?: () => boolean; // Note: Currently in types but not yet implemented
   mapper?: (result: Out) => Out | Promise<Out>;
+  resultInterceptor?: (result: Out) => void | Promise<void>; // Optional result interceptor for side effects
 }
 ```
 

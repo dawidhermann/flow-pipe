@@ -163,8 +163,10 @@ interface IRequestConfig {
 ```typescript
 interface PipelineRequestStage<Result, Out = Result, AdapterRequestConfig extends IRequestConfig = IRequestConfig> {
   config: AdapterRequestConfig | IRequestConfigFactory<Result, AdapterRequestConfig>;
-  precondition?: () => boolean; // Note: Currently in types but not yet implemented
+  precondition?: () => boolean;
   mapper?: (result: Result) => Out | Promise<Out>;
+  resultInterceptor?: (result: Out) => void | Promise<void>; // Optional result interceptor for side effects
+  retry?: RetryConfig; // Optional retry configuration
 }
 ```
 
