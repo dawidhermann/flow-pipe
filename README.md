@@ -6,6 +6,8 @@ A powerful TypeScript library for creating and managing request chains. Flow-pip
 
 **flow-pipe** is a TypeScript-first library that simplifies chaining multiple HTTP requests together. Each request in the chain can access and use results from previous requests, making it perfect for authentication flows, data aggregation, and sequential API calls.
 
+**Best suited for:** Backend services and CLI applications where sequential API calls are common. Can also be used in frontend applications for complex data fetching scenarios.
+
 ### Core Concept
 
 Instead of nested callbacks or complex Promise chains, flow-pipe provides a fluent API to chain requests:
@@ -32,7 +34,7 @@ const result = await RequestChain.begin(
 
 ### Request Adapters
 
-flow-pipe uses a **modular adapter system** - you choose which HTTP library to use. Each adapter is a separate package for better tree-shaking:
+flow-pipe uses a **modular adapter system** - you choose which HTTP library to use. Each adapter is a separate package:
 
 - **`FetchRequestAdapter`** - Native Fetch API (Node.js 18+, browsers) - Zero dependencies
 - **`NodeFetchRequestAdapter`** - node-fetch package (Node.js only)
@@ -188,7 +190,6 @@ console.log(await userData.json());
 - 🔌 **Modular Adapters**: Choose from Fetch, Axios, or Superagent adapters (or create your own)
 - 🎨 **Nested Chains**: Support for nested request managers
 - ⚡ **TypeScript First**: Full TypeScript support with type inference
-- 📦 **Tree-Shakeable**: Install only the adapter you need for smaller bundle sizes
 - 🔒 **Built-in SSRF Protection**: Automatic URL validation to prevent Server-Side Request Forgery attacks
 
 ## Table of Contents
@@ -215,7 +216,7 @@ npm install flow-pipe
 
 ### Individual Packages (Modular Installation)
 
-For better tree-shaking and smaller bundle sizes, you can install packages individually:
+You can install packages individually:
 
 ```bash
 # Core package (required)
@@ -232,9 +233,6 @@ npm install @flow-pipe/adapter-superagent    # Superagent adapter
 - 🎯 **Smaller bundles**: Only include the adapter you use
 - 🔄 **Flexibility**: Switch adapters without changing your code
 - 📦 **Independent versioning**: Each adapter can be updated independently
-- 🚀 **Better tree-shaking**: Unused adapters are eliminated from your bundle
-
-See [MONOREPO_MIGRATION.md](./MONOREPO_MIGRATION.md) for more details on the package structure.
 
 ## Quick Start
 
@@ -245,7 +243,7 @@ Here's a minimal example to get you started:
 import { RequestChain } from 'flow-pipe';
 import { FetchRequestAdapter } from 'flow-pipe/adapter-fetch';
 
-// Option 2: Using individual packages (better for tree-shaking)
+// Option 2: Using individual packages
 // import { RequestChain } from '@flow-pipe/core';
 // import { FetchRequestAdapter } from '@flow-pipe/adapter-fetch';
 
@@ -1006,14 +1004,7 @@ const results = await chain.executeAll();
 
 ## Adapters
 
-Adapters are responsible for executing the actual HTTP requests. Flow-pipe uses a **modular adapter system** that allows you to choose the HTTP library that best fits your needs. Each adapter is a separate package, enabling better tree-shaking and smaller bundle sizes.
-
-> **Recent Improvements**: Flow-pipe has been restructured as a monorepo with modular adapters. This enables:
-> - ✅ **Independent versioning** of each adapter
-> - ✅ **Better tree-shaking** - only include the adapter you use
-> - ✅ **Smaller bundle sizes** - no need to bundle unused adapters
-> - ✅ **Easy adapter switching** - swap adapters without code changes
-> - ✅ **Custom adapter support** - create and publish your own adapters
+Adapters are responsible for executing the actual HTTP requests. Flow-pipe uses a **modular adapter system** that allows you to choose the HTTP library that best fits your needs. Each adapter is a separate package.
 
 ### Available Adapters
 
@@ -1268,7 +1259,7 @@ const result = await RequestChain.begin(
 
 You can import adapters in three ways:
 
-**Option 1: From individual packages (recommended for tree-shaking)**
+**Option 1: From individual packages**
 ```typescript
 import { RequestChain } from '@flow-pipe/core';
 import { FetchRequestAdapter } from '@flow-pipe/adapter-fetch';
