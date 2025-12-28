@@ -2,6 +2,181 @@
 
 A powerful TypeScript library for creating and managing request chains. Flow-pipe allows you to chain multiple HTTP requests together, transform results, and handle responses with ease.
 
+## TL;DR
+
+**flow-pipe** is a TypeScript-first library that simplifies chaining multiple HTTP requests together. Each request in the chain can access and use results from previous requests, making it perfect for authentication flows, data aggregation, and sequential API calls.
+
+### Core Concept
+
+Instead of nested callbacks or complex Promise chains, flow-pipe provides a fluent API to chain requests:
+
+```typescript
+import { RequestChain } from 'flow-pipe';
+import { FetchRequestAdapter } from 'flow-pipe/adapter-fetch';
+
+const adapter = new FetchRequestAdapter();
+
+// Chain requests - each step can use the previous result
+const result = await RequestChain.begin(
+  { config: { url: 'https://api.example.com/users/1', method: 'GET' } },
+  adapter
+)
+  .next({
+    config: async (previousResult) => {
+      const user = await previousResult.json();
+      return { url: `https://api.example.com/users/${user.id}/posts`, method: 'GET' };
+    }
+  })
+  .execute();
+```
+
+### Request Adapters
+
+flow-pipe uses a **modular adapter system** - you choose which HTTP library to use. Each adapter is a separate package for better tree-shaking:
+
+- **`FetchRequestAdapter`** - Native Fetch API (Node.js 18+, browsers) - Zero dependencies
+- **`NodeFetchRequestAdapter`** - node-fetch package (Node.js only)
+- **`AxiosRequestAdapter`** - Axios with automatic JSON parsing
+- **`SuperagentRequestAdapter`** - Superagent for cross-platform support
+
+**Installation:**
+```bash
+npm install @flow-pipe/core @flow-pipe/adapter-fetch
+```
+
+**Usage:**
+```typescript
+// All adapters share the same API - easy to switch!
+const fetchAdapter = new FetchRequestAdapter();
+const axiosAdapter = new AxiosRequestAdapter();
+
+// Use any adapter with the same code
+const result = await RequestChain.begin(
+  { config: { url: '...', method: 'GET' } },
+  fetchAdapter // or axiosAdapter, etc.
+).execute();
+```
+
+### Key Features
+
+**1. Chain Requests with Previous Results**
+```typescript
+const result = await RequestChain.begin(
+  { config: { url: 'https://api.example.com/auth/login', method: 'POST', data: {...} } },
+  adapter
+)
+  .next({
+    config: async (previousResult) => {
+      const auth = await previousResult.json();
+      return {
+        url: 'https://api.example.com/user/profile',
+        method: 'GET',
+        headers: { Authorization: `Bearer ${auth.token}` }
+      };
+    }
+  })
+  .execute();
+```
+
+**2. Transform Results with Mappers**
+```typescript
+.next({
+  config: { url: 'https://api.example.com/users/1', method: 'GET' },
+  mapper: async (result) => {
+    const data = await result.json();
+    return data.id; // Transform to just the ID
+  }
+})
+```
+
+**3. Automatic Retry with Exponential Backoff**
+```typescript
+const result = await RequestChain.begin(
+  {
+    config: { url: 'https://api.example.com/users', method: 'GET' },
+    retry: {
+      maxRetries: 5,
+      retryDelay: 1000,
+      exponentialBackoff: true,
+      retryCondition: retryOnNetworkOrStatusCodes(500, 502, 503, 504, 429)
+    }
+  },
+  adapter
+).execute();
+```
+
+**4. Execute All Requests**
+```typescript
+const results = await RequestChain.begin(...)
+  .next(...)
+  .next(...)
+  .executeAll(); // Returns array of all results
+```
+
+**5. Error Handling**
+```typescript
+await RequestChain.begin(...)
+  .withResultHandler((result) => console.log('Success:', result))
+  .withErrorHandler((error) => console.error('Error:', error))
+  .withFinishHandler(() => console.log('Done'))
+  .execute();
+```
+
+### Response Formats
+
+Different adapters return different response formats:
+
+- **Fetch/Node-Fetch**: Returns standard `Response` - use `.json()` to parse
+- **Axios**: Returns `AxiosResponse` - data is already parsed in `.data` property
+- **Superagent**: Returns `SuperagentResponse` - data is already parsed in `.body` property
+
+### Security
+
+Built-in SSRF protection blocks private IPs and localhost by default. Configure for development:
+
+```typescript
+const adapter = new FetchRequestAdapter({
+  allowLocalhost: true // For local development only
+});
+```
+
+### Quick Example: Authentication Flow
+
+```typescript
+import { RequestChain } from 'flow-pipe';
+import { FetchRequestAdapter } from 'flow-pipe/adapter-fetch';
+
+const adapter = new FetchRequestAdapter();
+
+const userData = await RequestChain.begin(
+  {
+    config: {
+      url: 'https://api.example.com/auth/login',
+      method: 'POST',
+      data: { username: 'user', password: 'pass' }
+    }
+  },
+  adapter
+)
+  .next({
+    config: async (previousResult) => {
+      const auth = await previousResult.json();
+      return {
+        url: 'https://api.example.com/user/profile',
+        method: 'GET',
+        headers: { Authorization: `Bearer ${auth.token}` }
+      };
+    }
+  })
+  .execute();
+
+console.log(await userData.json());
+```
+
+**That's it!** Check out the [Installation](#installation) section below to get started, or jump to [Quick Start](#quick-start) for more examples.
+
+---
+
 ## Features
 
 - 🔗 **Chain Requests**: Link multiple HTTP requests in sequence
