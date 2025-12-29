@@ -1,12 +1,16 @@
 import { RequestAdapter } from "@request-orchestrator/core";
-import type { IRequestConfig, UrlValidationOptions } from "@request-orchestrator/core";
+import type {
+  IRequestConfig,
+  UrlValidationOptions,
+} from "@request-orchestrator/core";
 import axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
 
 /**
  * Extended request configuration type that combines IRequestConfig with Axios-specific options.
  * Allows using all Axios configuration options while maintaining compatibility with request-orchestrator.
  */
-export type AxiosRequestConfigType = IRequestConfig & Partial<AxiosRequestConfig>;
+export type AxiosRequestConfigType = IRequestConfig &
+  Partial<AxiosRequestConfig>;
 
 /**
  * Request adapter implementation using Axios as the underlying HTTP client.
@@ -45,7 +49,7 @@ export default class AxiosRequestAdapter extends RequestAdapter<
     requestConfig: AxiosRequestConfigType
   ): Promise<AxiosResponse> {
     const { url, method, data, ...rest } = requestConfig;
-    
+
     const axiosConfig: AxiosRequestConfig = {
       url,
       method: method.toLowerCase() as AxiosRequestConfig["method"],
@@ -56,4 +60,3 @@ export default class AxiosRequestAdapter extends RequestAdapter<
     return axios(axiosConfig);
   }
 }
-

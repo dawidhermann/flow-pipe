@@ -1,5 +1,8 @@
 import { RequestAdapter } from "@request-orchestrator/core";
-import type { IRequestConfig, UrlValidationOptions } from "@request-orchestrator/core";
+import type {
+  IRequestConfig,
+  UrlValidationOptions,
+} from "@request-orchestrator/core";
 import superagent, { type Response, type Request } from "superagent";
 
 /**
@@ -89,4 +92,3 @@ export default class SuperagentRequestAdapter extends RequestAdapter<
     return request;
   }
 }
-

@@ -1,5 +1,8 @@
 import { RequestAdapter } from "@request-orchestrator/core";
-import type { IRequestConfig, UrlValidationOptions } from "@request-orchestrator/core";
+import type {
+  IRequestConfig,
+  UrlValidationOptions,
+} from "@request-orchestrator/core";
 import fetch from "node-fetch";
 import type { RequestInit, Response } from "node-fetch";
 

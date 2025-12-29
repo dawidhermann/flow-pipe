@@ -2,7 +2,15 @@
 
 import type { AxiosRequestConfig, AxiosResponse, AxiosError } from "axios";
 
-type AxiosMockResponse<T = any> = AxiosResponse<T> | { data: T; status: number; statusText: string; headers: Record<string, string>; config: AxiosRequestConfig };
+type AxiosMockResponse<T = any> =
+  | AxiosResponse<T>
+  | {
+      data: T;
+      status: number;
+      statusText: string;
+      headers: Record<string, string>;
+      config: AxiosRequestConfig;
+    };
 type AxiosMockError = AxiosError | Error;
 
 interface AxiosCall {
@@ -91,7 +99,10 @@ class AxiosMock {
     }
 
     // Check method
-    if (expected.method && actual.method?.toLowerCase() !== expected.method.toLowerCase()) {
+    if (
+      expected.method &&
+      actual.method?.toLowerCase() !== expected.method.toLowerCase()
+    ) {
       return false;
     }
 
@@ -133,16 +144,28 @@ class AxiosMock {
       if (!response) {
         throw new Error("No response available");
       }
-      
+
       // Ensure response has all required AxiosResponse properties
       const axiosResponse: AxiosResponse<T> = {
-        data: (response as AxiosResponse<T>).data || (response as any).data || ({} as T),
-        status: (response as AxiosResponse<T>).status || (response as any).status || 200,
-        statusText: (response as AxiosResponse<T>).statusText || (response as any).statusText || "OK",
-        headers: (response as AxiosResponse<T>).headers || (response as any).headers || {},
+        data:
+          (response as AxiosResponse<T>).data ||
+          (response as any).data ||
+          ({} as T),
+        status:
+          (response as AxiosResponse<T>).status ||
+          (response as any).status ||
+          200,
+        statusText:
+          (response as AxiosResponse<T>).statusText ||
+          (response as any).statusText ||
+          "OK",
+        headers:
+          (response as AxiosResponse<T>).headers ||
+          (response as any).headers ||
+          {},
         config: (response as AxiosResponse<T>).config || config,
       };
-      
+
       return Promise.resolve(axiosResponse);
     }
 
@@ -247,4 +270,3 @@ export const axiosMockToBeCalledWith = (
 // Export the mock instance for chaining
 export default axiosMock;
 export { mockAxios };
-

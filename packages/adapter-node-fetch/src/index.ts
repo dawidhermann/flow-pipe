@@ -10,5 +10,3 @@
  */
 
 export { default, NodeFetchRequestConfig } from "./node-fetch-request-adapter";
-
-

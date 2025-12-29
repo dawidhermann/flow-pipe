@@ -233,11 +233,7 @@ describe("SuperagentRequestAdapter", () => {
       });
 
       const adapter = new TestSuperagentAdapter();
-      await RequestChain.begin<
-        Response,
-        Response,
-        SuperagentRequestConfig
-      >(
+      await RequestChain.begin<Response, Response, SuperagentRequestConfig>(
         {
           config: {
             url: "http://example.com/users",
@@ -254,10 +250,7 @@ describe("SuperagentRequestAdapter", () => {
       const calls = getSuperagentCalls();
       assert.strictEqual(calls.length, 1);
       assert.ok(calls[0].headers);
-      assert.strictEqual(
-        calls[0].headers!["Content-Type"],
-        "application/json"
-      );
+      assert.strictEqual(calls[0].headers!["Content-Type"], "application/json");
     });
   });
 
@@ -381,11 +374,7 @@ describe("SuperagentRequestAdapter", () => {
       let errorThrown = false;
 
       try {
-        await RequestChain.begin<
-          Response,
-          Response,
-          SuperagentRequestConfig
-        >(
+        await RequestChain.begin<Response, Response, SuperagentRequestConfig>(
           {
             config: { url: "http://example.com/users", method: "GET" },
           },
@@ -417,11 +406,7 @@ describe("SuperagentRequestAdapter", () => {
       let errorThrown = false;
 
       try {
-        await RequestChain.begin<
-          Response,
-          Response,
-          SuperagentRequestConfig
-        >(
+        await RequestChain.begin<Response, Response, SuperagentRequestConfig>(
           {
             config: { url: "http://example.com/users/999", method: "GET" },
           },
@@ -448,11 +433,7 @@ describe("SuperagentRequestAdapter", () => {
       });
 
       const adapter = new TestSuperagentAdapter();
-      await RequestChain.begin<
-        Response,
-        Response,
-        SuperagentRequestConfig
-      >(
+      await RequestChain.begin<Response, Response, SuperagentRequestConfig>(
         {
           config: {
             url: "http://example.com/users",
@@ -485,11 +466,7 @@ describe("SuperagentRequestAdapter", () => {
         });
 
         const adapter = new TestSuperagentAdapter();
-        await RequestChain.begin<
-          Response,
-          Response,
-          SuperagentRequestConfig
-        >(
+        await RequestChain.begin<Response, Response, SuperagentRequestConfig>(
           {
             config: {
               url: "http://example.com/test",
@@ -520,11 +497,7 @@ describe("SuperagentRequestAdapter", () => {
       });
 
       const adapter = new TestSuperagentAdapter();
-      await RequestChain.begin<
-        Response,
-        Response,
-        SuperagentRequestConfig
-      >(
+      await RequestChain.begin<Response, Response, SuperagentRequestConfig>(
         {
           config: {
             url: "http://example.com/users",
@@ -549,11 +522,7 @@ describe("SuperagentRequestAdapter", () => {
       });
 
       const adapter = new TestSuperagentAdapter();
-      await RequestChain.begin<
-        Response,
-        Response,
-        SuperagentRequestConfig
-      >(
+      await RequestChain.begin<Response, Response, SuperagentRequestConfig>(
         {
           config: {
             url: "http://example.com/data",
@@ -576,11 +545,7 @@ describe("SuperagentRequestAdapter", () => {
       });
 
       const adapter = new TestSuperagentAdapter();
-      await RequestChain.begin<
-        Response,
-        Response,
-        SuperagentRequestConfig
-      >(
+      await RequestChain.begin<Response, Response, SuperagentRequestConfig>(
         {
           config: {
             url: "http://example.com/users",
@@ -603,11 +568,7 @@ describe("SuperagentRequestAdapter", () => {
       });
 
       const adapter = new TestSuperagentAdapter();
-      await RequestChain.begin<
-        Response,
-        Response,
-        SuperagentRequestConfig
-      >(
+      await RequestChain.begin<Response, Response, SuperagentRequestConfig>(
         {
           config: {
             url: "http://example.com/users",
@@ -622,4 +583,3 @@ describe("SuperagentRequestAdapter", () => {
     });
   });
 });
-

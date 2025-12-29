@@ -55,4 +55,3 @@ export default class TestSuperagentAdapter extends RequestAdapter<
     return request;
   }
 }
-

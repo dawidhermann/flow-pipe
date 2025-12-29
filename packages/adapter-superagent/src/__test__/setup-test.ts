@@ -6,4 +6,3 @@ import { mockSuperagent } from "./__mocks__/superagent-mock";
 // For now, we'll use a different approach - create a test adapter that uses the mock
 
 export { mockSuperagent };
-

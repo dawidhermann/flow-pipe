@@ -11,7 +11,7 @@ export default class TestAxiosAdapter extends RequestAdapter<
     requestConfig: AxiosRequestConfigType
   ): Promise<AxiosResponse> {
     const { url, method, data, ...rest } = requestConfig;
-    
+
     const axiosConfig: AxiosRequestConfig = {
       url,
       method: method.toLowerCase() as AxiosRequestConfig["method"],
@@ -22,4 +22,3 @@ export default class TestAxiosAdapter extends RequestAdapter<
     return mockAxios(axiosConfig);
   }
 }
-
