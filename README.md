@@ -1766,7 +1766,7 @@ This allows each step in the chain to dynamically build its request based on the
 ```typescript
 interface PipelineManagerStage<Out, AdapterExecutionResult, AdapterRequestConfig extends IRequestConfig = IRequestConfig> {
   request: RequestManager<Out, AdapterExecutionResult, AdapterRequestConfig>;
-  precondition?: () => boolean; // Note: Currently in types but not yet implemented
+  precondition?: () => boolean;
   mapper?: (result: Out) => Out | Promise<Out>;
   resultInterceptor?: (result: Out) => void | Promise<void>; // Optional result interceptor for side effects
 }
