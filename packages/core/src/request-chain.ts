@@ -301,7 +301,10 @@ export default class RequestChain<
       // Execute request and handle chunk processing if enabled
       const rawResult: AdapterExecutionResult =
         await this.adapter.executeRequest(requestConfig);
-      return this.processResultWithChunks<Out>(rawResult, chunkProcessing);
+      return this.processResultWithChunks<Out>(
+        rawResult,
+        chunkProcessing
+      );
     } else if (isPipelineManagerStage(requestEntity)) {
       const { request } = requestEntity;
       const rawResult: Out = await request.execute();
