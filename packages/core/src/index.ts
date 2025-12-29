@@ -22,9 +22,10 @@ export type {
   PipelineManagerStage,
   BasePipelineStage,
   RetryConfig,
+  ChunkProcessingConfig,
 } from "./models/request-params";
 
-export type { ErrorHandler, ResultHandler } from "./models/handlers";
+export type { ErrorHandler, ResultHandler, ChunkHandler } from "./models/handlers";
 
 // Security utilities
 export { validateUrl, SSRFError } from "./utils/url-validator";
@@ -38,3 +39,12 @@ export {
   retryOnStatusCodes,
   retryOnNetworkOrStatusCodes,
 } from "./utils/retry-utils";
+
+// Chunk processing utilities
+export {
+  processStream,
+  processTextStreamLineByLine,
+  processResponseStream,
+  isReadableStream,
+  hasReadableStream,
+} from "./utils/chunk-processor";

@@ -7,6 +7,10 @@ import type {
   RetryConfig,
 } from "./models/request-params";
 import { defaultRetryCondition } from "./utils/retry-utils";
+import {
+  processResponseStream,
+  hasReadableStream,
+} from "./utils/chunk-processor";
 
 /**
  * A chainable request pipeline that allows sequential execution of HTTP requests.
@@ -262,6 +266,7 @@ export default class RequestChain<
    * Executes a single request entity (stage).
    * Handles both request stages and nested manager stages.
    * Implements retry logic for request stages when retry configuration is provided.
+   * Supports progressive chunk processing for streaming responses.
    *
    * @template Out - The output type
    * @param requestEntity - The pipeline stage to execute
@@ -276,7 +281,7 @@ export default class RequestChain<
     previousResult?: Out
   ): Promise<Out> => {
     if (isPipelineRequestStage(requestEntity)) {
-      const { config, retry } = requestEntity;
+      const { config, retry, chunkProcessing } = requestEntity;
       const requestConfig: AdapterRequestConfig =
         typeof config === "function"
           ? (config(
@@ -286,13 +291,17 @@ export default class RequestChain<
 
       // If retry config is provided, wrap execution in retry logic
       if (retry) {
-        return this.executeWithRetry<Out>(requestConfig, retry);
+        return this.executeWithRetry<Out>(
+          requestConfig,
+          retry,
+          chunkProcessing
+        );
       }
 
-      // No retry config, execute normally
+      // Execute request and handle chunk processing if enabled
       const rawResult: AdapterExecutionResult =
         await this.adapter.executeRequest(requestConfig);
-      return this.adapter.getResult(rawResult) as unknown as Out;
+      return this.processResultWithChunks<Out>(rawResult, chunkProcessing);
     } else if (isPipelineManagerStage(requestEntity)) {
       const { request } = requestEntity;
       const rawResult: Out = await request.execute();
@@ -306,16 +315,19 @@ export default class RequestChain<
 
   /**
    * Executes a request with retry logic based on the provided retry configuration.
+   * Supports chunk processing for streaming responses.
    *
    * @template Out - The output type
    * @param requestConfig - The request configuration
    * @param retryConfig - The retry configuration
+   * @param chunkProcessing - Optional chunk processing configuration
    * @returns A promise that resolves to the request result
    * @throws {Error} If all retry attempts are exhausted
    */
   private executeWithRetry = async <Out>(
     requestConfig: AdapterRequestConfig,
-    retryConfig: RetryConfig
+    retryConfig: RetryConfig,
+    chunkProcessing?: import("./models/request-params").ChunkProcessingConfig
   ): Promise<Out> => {
     const maxRetries = retryConfig.maxRetries ?? 3;
     const retryCondition = retryConfig.retryCondition ?? defaultRetryCondition;
@@ -325,7 +337,7 @@ export default class RequestChain<
       try {
         const rawResult: AdapterExecutionResult =
           await this.adapter.executeRequest(requestConfig);
-        return this.adapter.getResult(rawResult) as unknown as Out;
+        return this.processResultWithChunks<Out>(rawResult, chunkProcessing);
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
@@ -353,6 +365,47 @@ export default class RequestChain<
 
     // This should never be reached, but TypeScript needs it
     throw lastError || new Error("Retry failed");
+  };
+
+  /**
+   * Processes a result with chunk processing if enabled.
+   * Handles streaming responses by processing chunks progressively.
+   *
+   * @template Out - The output type
+   * @param rawResult - The raw result from the adapter
+   * @param chunkProcessing - Optional chunk processing configuration
+   * @returns A promise that resolves to the processed result
+   */
+  private processResultWithChunks = async <Out>(
+    rawResult: AdapterExecutionResult,
+    chunkProcessing?: import("./models/request-params").ChunkProcessingConfig
+  ): Promise<Out> => {
+    // If chunk processing is enabled and result is a Response with readable stream
+    if (
+      chunkProcessing?.enabled &&
+      rawResult instanceof Response &&
+      hasReadableStream(rawResult)
+    ) {
+      // Clone the response to avoid consuming the original stream
+      const clonedResponse = rawResult.clone();
+
+      // Process the stream
+      const processed = await processResponseStream(clonedResponse, {
+        ...chunkProcessing,
+      });
+
+      // If accumulation is enabled, return the accumulated data
+      // Otherwise, return the original response (chunks were processed via handler)
+      if (chunkProcessing.accumulate && processed !== rawResult) {
+        return processed as unknown as Out;
+      }
+
+      // Return original response if chunks were only processed via handler
+      return this.adapter.getResult(rawResult) as unknown as Out;
+    }
+
+    // No chunk processing, return result normally
+    return this.adapter.getResult(rawResult) as unknown as Out;
   };
 
   /**

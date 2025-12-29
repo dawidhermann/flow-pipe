@@ -1,4 +1,5 @@
 import type RequestFlow from "../request-manager";
+import type { ChunkHandler } from "./handlers";
 
 /**
  * Supported HTTP methods for requests
@@ -151,6 +152,54 @@ export interface BasePipelineStage<Result, Out = Result> {
 }
 
 /**
+ * Configuration for progressive chunk processing of streaming responses.
+ * Enables processing large responses incrementally without loading everything into memory.
+ *
+ * @example
+ * ```typescript
+ * chunkProcessing: {
+ *   enabled: true,
+ *   chunkHandler: async (chunk, metadata) => {
+ *     console.log(`Chunk ${metadata.index}:`, chunk);
+ *     await processChunk(chunk);
+ *   },
+ *   chunkSize: 1024, // Process in 1KB chunks
+ *   encoding: 'utf-8'
+ * }
+ * ```
+ */
+export interface ChunkProcessingConfig<Chunk = string | Uint8Array> {
+  /**
+   * Whether chunk processing is enabled. Defaults to false.
+   * When enabled, the response body will be processed as a stream.
+   */
+  enabled: boolean;
+  /**
+   * Handler function called for each chunk as it arrives.
+   * Required when chunk processing is enabled.
+   */
+  chunkHandler: ChunkHandler<Chunk>;
+  /**
+   * Size of each chunk in bytes. Only applies to binary data.
+   * For text streams, chunks are delimited by newlines or the stream.
+   * Defaults to 8192 (8KB).
+   */
+  chunkSize?: number;
+  /**
+   * Text encoding for text-based streams. Defaults to 'utf-8'.
+   * Ignored for binary streams.
+   * Common values: 'utf-8', 'utf-16', 'ascii', etc.
+   */
+  encoding?: string;
+  /**
+   * Whether to accumulate chunks and return them as a complete result.
+   * When false, only the chunk handler is called and the final result may be empty.
+   * Defaults to false.
+   */
+  accumulate?: boolean;
+}
+
+/**
  * Pipeline stage that executes an HTTP request using the adapter.
  *
  * @template Result - The type of result from the adapter
@@ -174,6 +223,12 @@ export interface PipelineRequestStage<
    * Only applies to request stages, not nested manager stages.
    */
   retry?: RetryConfig;
+  /**
+   * Optional chunk processing configuration for progressive processing of streaming responses.
+   * Enables processing large responses incrementally without loading everything into memory.
+   * Only applies to request stages that support streaming (e.g., Fetch API with ReadableStream).
+   */
+  chunkProcessing?: ChunkProcessingConfig;
 }
 
 /**

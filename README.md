@@ -204,6 +204,7 @@ console.log(await userData.json());
 - 🎯 **Handler Support**: Result, error, and finish handlers
 - 🔁 **Automatic Retry**: Configurable retry mechanism with exponential backoff
 - 📦 **Batch Execution**: Execute all requests and get all results
+- 🌊 **Progressive Chunk Processing**: Process large streaming responses incrementally without loading everything into memory
 - 🔌 **Modular Adapters**: Choose from Fetch, Axios, or Superagent adapters (or create your own)
 - 🎨 **Nested Chains**: Support for nested request managers
 - ⚡ **TypeScript First**: Full TypeScript support with type inference
@@ -938,6 +939,205 @@ request-orchestrator provides helper functions for common retry scenarios:
 - **Default behavior**: If no `retryCondition` is provided, retries only occur on network errors (connection failures, timeouts, etc.)
 - **Error handling**: After all retries are exhausted, the error is thrown and can be caught by error handlers or `.catch()`
 - **Per-stage configuration**: Each stage in a chain can have its own retry configuration
+
+### Progressive Chunk Processing
+
+request-orchestrator supports progressive chunk processing for streaming responses, allowing you to process large responses incrementally without loading everything into memory. This is especially useful for handling large files, streaming APIs, or Server-Sent Events (SSE).
+
+#### Basic Chunk Processing
+
+Process streaming responses chunk by chunk as they arrive:
+
+```typescript
+import { RequestChain, FetchRequestAdapter } from 'request-orchestrator';
+
+const adapter = new FetchRequestAdapter();
+
+const processedChunks: Uint8Array[] = [];
+
+await RequestChain.begin(
+  {
+    config: { url: 'https://api.example.com/large-file', method: 'GET' },
+    chunkProcessing: {
+      enabled: true,
+      chunkHandler: async (chunk, metadata) => {
+        console.log(`Processing chunk ${metadata.index}:`, chunk);
+        processedChunks.push(chunk);
+        // Process chunk incrementally (e.g., write to file, parse JSON, etc.)
+        await processChunk(chunk);
+      },
+    },
+  },
+  adapter
+).execute();
+```
+
+#### Chunk Handler Metadata
+
+The chunk handler receives metadata about each chunk:
+
+```typescript
+chunkProcessing: {
+  enabled: true,
+  chunkHandler: (chunk, metadata) => {
+    console.log(`Chunk index: ${metadata.index}`);
+    console.log(`Is last chunk: ${metadata.isLast}`);
+    console.log(`Total bytes read: ${metadata.totalBytesRead}`);
+  },
+}
+```
+
+#### Accumulating Chunks
+
+You can accumulate chunks and get the complete result:
+
+```typescript
+const result = await RequestChain.begin(
+  {
+    config: { url: 'https://api.example.com/data', method: 'GET' },
+    chunkProcessing: {
+      enabled: true,
+      chunkHandler: (chunk) => {
+        console.log('Received chunk:', chunk);
+      },
+      accumulate: true, // Accumulate all chunks
+    },
+  },
+  adapter
+).execute();
+
+// Result will be the accumulated data (Uint8Array or string)
+if (result instanceof Uint8Array) {
+  const text = new TextDecoder().decode(result);
+  console.log('Complete data:', text);
+}
+```
+
+#### Text Stream Processing
+
+Process text streams with custom encoding:
+
+```typescript
+await RequestChain.begin(
+  {
+    config: { url: 'https://api.example.com/text-stream', method: 'GET' },
+    chunkProcessing: {
+      enabled: true,
+      chunkHandler: (chunk) => {
+        // Chunk will be Uint8Array, decode as needed
+        const text = new TextDecoder('utf-8').decode(chunk);
+        console.log('Text chunk:', text);
+      },
+      encoding: 'utf-8', // Default encoding
+    },
+  },
+  adapter
+).execute();
+```
+
+#### Processing Line-by-Line (NDJSON, CSV)
+
+For line-delimited data (NDJSON, CSV, logs), you can process chunks and split by newlines:
+
+```typescript
+let buffer = '';
+
+await RequestChain.begin(
+  {
+    config: { url: 'https://api.example.com/ndjson-stream', method: 'GET' },
+    chunkProcessing: {
+      enabled: true,
+      chunkHandler: (chunk) => {
+        // Decode chunk and process line by line
+        const decoder = new TextDecoder('utf-8');
+        buffer += decoder.decode(chunk, { stream: true });
+        
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+        
+        for (const line of lines) {
+          if (line.trim()) {
+            const data = JSON.parse(line); // Process each JSON line
+            console.log('Parsed line:', data);
+          }
+        }
+      },
+      encoding: 'utf-8',
+    },
+  },
+  adapter
+).execute();
+```
+
+#### Chunk Processing with Mappers
+
+Chunk processing works seamlessly with mappers:
+
+```typescript
+await RequestChain.begin(
+  {
+    config: { url: 'https://api.example.com/stream', method: 'GET' },
+    chunkProcessing: {
+      enabled: true,
+      chunkHandler: (chunk) => {
+        console.log('Processing chunk:', chunk);
+      },
+    },
+    mapper: async (result) => {
+      // Mapper receives the final result (Response or accumulated data)
+      if (result instanceof Response) {
+        return await result.json();
+      }
+      return result;
+    },
+  },
+  adapter
+).execute();
+```
+
+#### Chunk Processing with Retry
+
+Chunk processing works with retry mechanisms:
+
+```typescript
+await RequestChain.begin(
+  {
+    config: { url: 'https://api.example.com/stream', method: 'GET' },
+    chunkProcessing: {
+      enabled: true,
+      chunkHandler: (chunk) => {
+        console.log('Chunk:', chunk);
+      },
+    },
+    retry: {
+      maxRetries: 3,
+      retryDelay: 1000,
+      retryCondition: (error) => {
+        // Retry on network errors
+        return error.name === 'TypeError';
+      },
+    },
+  },
+  adapter
+).execute();
+```
+
+#### Use Cases
+
+Progressive chunk processing is ideal for:
+
+- **Large file downloads**: Process files incrementally without loading everything into memory
+- **Streaming APIs**: Handle real-time data streams (e.g., Server-Sent Events)
+- **NDJSON/CSV processing**: Process line-delimited data formats
+- **Log processing**: Stream and process log files
+- **Data transformation**: Transform large datasets incrementally
+
+#### Important Notes
+
+- **Streaming support**: Chunk processing works with responses that have readable streams (e.g., Fetch API `Response.body`)
+- **Memory efficiency**: When `accumulate` is `false`, chunks are processed without storing them in memory
+- **Non-streaming responses**: If a response doesn't support streaming, chunk processing is skipped gracefully
+- **Adapter compatibility**: Works best with Fetch-based adapters that support ReadableStream
 
 ### Executing All Requests
 
@@ -1746,6 +1946,7 @@ interface PipelineRequestStage<Result, Out = Result, AdapterRequestConfig extend
   mapper?: (result: Result) => Out | Promise<Out>;
   resultInterceptor?: (result: Out) => void | Promise<void>; // Optional result interceptor for side effects
   retry?: RetryConfig; // Optional retry configuration
+  chunkProcessing?: ChunkProcessingConfig; // Optional chunk processing configuration
 }
 ```
 
@@ -1781,6 +1982,33 @@ interface RetryConfig {
   exponentialBackoff?: boolean; // Default: false
   maxDelay?: number; // Maximum delay cap for exponential backoff
   retryCondition?: (error: Error, attempt: number) => boolean; // Default: retries on network errors
+}
+```
+
+#### ChunkProcessingConfig
+
+```typescript
+interface ChunkProcessingConfig<Chunk = string | Uint8Array> {
+  enabled: boolean; // Whether chunk processing is enabled
+  chunkHandler: ChunkHandler<Chunk>; // Handler function called for each chunk
+  chunkSize?: number; // Size of each chunk in bytes (default: 8192)
+  encoding?: string; // Text encoding for text-based streams (default: 'utf-8')
+  accumulate?: boolean; // Whether to accumulate chunks and return them (default: false)
+}
+```
+
+#### ChunkHandler
+
+```typescript
+interface ChunkHandler<Chunk = unknown> {
+  (
+    chunk: Chunk,
+    metadata?: {
+      index: number;
+      isLast: boolean;
+      totalBytesRead?: number;
+    }
+  ): void | Promise<void>;
 }
 ```
 
