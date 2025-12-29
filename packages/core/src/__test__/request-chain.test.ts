@@ -1265,3 +1265,120 @@ describe("Result interceptor test", () => {
     assert.strictEqual(interceptedBody, result.body);
   });
 });
+
+describe("Coverage improvement tests", () => {
+  test("Retry with exponential backoff and maxDelay cap branch", async () => {
+    resetFetchMock();
+    const startTime = Date.now();
+    fetchMock
+      .mockReject(new TypeError("Network error"))
+      .mockReject(new TypeError("Network error"))
+      .mockReject(new TypeError("Network error"))
+      .once(JSON.stringify(firstUser));
+    const result = await RequestChain.begin<
+      TestRequestResult<typeof firstUser>,
+      Response,
+      IRequestConfig
+    >(
+      {
+        config: { url: "http://example.com/users", method: "GET" },
+        retry: {
+          maxRetries: 5,
+          retryDelay: 100,
+          exponentialBackoff: true,
+          maxDelay: 200, // This will cap the delay at 200ms
+        },
+      },
+      new TestAdapter()
+    ).execute();
+    const elapsed = Date.now() - startTime;
+    // Should have waited with capped delays
+    assert.ok(elapsed >= 500);
+    assert.strictEqual(result.body, JSON.stringify(firstUser));
+  });
+
+  test("Retry with fixed delay branch (no exponential backoff)", async () => {
+    resetFetchMock();
+    const startTime = Date.now();
+    fetchMock
+      .mockReject(new TypeError("Network error"))
+      .once(JSON.stringify(firstUser));
+    const result = await RequestChain.begin<
+      TestRequestResult<typeof firstUser>,
+      Response,
+      IRequestConfig
+    >(
+      {
+        config: { url: "http://example.com/users", method: "GET" },
+        retry: {
+          maxRetries: 3,
+          retryDelay: 50,
+          exponentialBackoff: false, // Explicitly false to hit fixed delay branch
+        },
+      },
+      new TestAdapter()
+    ).execute();
+    const elapsed = Date.now() - startTime;
+    assert.ok(elapsed >= 50);
+    assert.strictEqual(result.body, JSON.stringify(firstUser));
+  });
+
+  test("PipelineManagerStage with mapper branch", async () => {
+    resetFetchMock();
+    const response: string = JSON.stringify(firstUser);
+    fetchMock.mockResponseOnce(response);
+    const nestedChain = RequestChain.begin<
+      TestRequestResult<typeof firstUser>,
+      Response,
+      IRequestConfig
+    >(
+      {
+        config: { url: "http://example.com/users/1", method: "GET" },
+      },
+      new TestAdapter()
+    );
+    const result = await RequestChain.begin<string, Response, IRequestConfig>(
+      {
+        request: nestedChain,
+        mapper: (result: TestRequestResult<typeof firstUser>) => {
+          const data = JSON.parse(result.body);
+          return data.name;
+        },
+      },
+      new TestAdapter()
+    ).execute();
+    assert.strictEqual(result, firstUser.name);
+  });
+
+  test("isPipelineManagerStage type guard coverage", async () => {
+    resetFetchMock();
+    const response: string = JSON.stringify(firstUser);
+    fetchMock.mockResponseOnce(response);
+    const nestedChain = RequestChain.begin<
+      TestRequestResult<typeof firstUser>,
+      Response,
+      IRequestConfig
+    >(
+      {
+        config: { url: "http://example.com/users/1", method: "GET" },
+      },
+      new TestAdapter()
+    );
+    // This will exercise the isPipelineManagerStage type guard
+    const result = await RequestChain.begin<
+      TestRequestResult<typeof firstUser>,
+      Response,
+      IRequestConfig
+    >(
+      {
+        config: { url: "http://example.com/users/2", method: "GET" },
+      },
+      new TestAdapter()
+    )
+      .next<TestRequestResult<typeof firstUser>>({
+        request: nestedChain,
+      })
+      .execute();
+    assert.ok(result);
+  });
+});
