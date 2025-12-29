@@ -4,7 +4,7 @@ A powerful TypeScript library for creating and managing request chains. Flow-pip
 
 ## TL;DR
 
-**flow-pipe** is a TypeScript-first library that simplifies chaining multiple HTTP requests together. Each request in the chain can access and use results from previous requests, making it perfect for authentication flows, data aggregation, and sequential API calls.
+**flow-pipe** is **not** a new library for API calls—it's a **wrapper** that helps orchestrate complex REST data flows. Built with TypeScript-first design, flow-pipe wraps your existing HTTP libraries (Fetch, Axios, Superagent, etc.) to simplify chaining multiple requests together. Each request in the chain can access and use results from previous requests, making it perfect for authentication flows, data aggregation, and sequential API orchestration.
 
 **Best suited for:** Backend services and CLI applications where sequential API calls are common. Can also be used in frontend applications for complex data fetching scenarios.
 
