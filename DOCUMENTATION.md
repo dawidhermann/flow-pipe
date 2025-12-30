@@ -1,6 +1,21 @@
 # request-orchestrator Documentation
 
-Complete documentation for request-orchestrator, a powerful TypeScript library for creating and managing request chains.
+Complete documentation for request-orchestrator, a declarative API workflow orchestration library for Node.js.
+
+## What is request-orchestrator?
+
+Request-orchestrator is a **backend orchestration tool** for building complex API workflows. It's designed for scenarios where you need to:
+
+- Chain multiple sequential HTTP requests where each depends on the previous result
+- Handle complex error scenarios with compensation logic
+- Transform data between workflow steps
+- Build declarative, testable API workflows
+- Process webhooks, build agent systems, or orchestrate microservices
+
+**Request-orchestrator is NOT:**
+- A React data fetching library (use React Query or RTK Query instead)
+- A caching solution (use Redis or similar)
+- A replacement for simple `fetch()` or `axios` calls
 
 ## Table of Contents
 
@@ -13,6 +28,64 @@ Complete documentation for request-orchestrator, a powerful TypeScript library f
 - [Troubleshooting](#troubleshooting)
 
 ## Basic Usage
+
+### Real-World Example: Webhook Processing
+
+Here's a complete example showing how request-orchestrator simplifies complex workflows:
+
+```typescript
+import { RequestChain } from 'request-orchestrator';
+import { FetchRequestAdapter } from 'request-orchestrator/adapter-fetch';
+
+const adapter = new FetchRequestAdapter();
+
+async function processStripeWebhook(body: string, signature: string) {
+  return RequestChain.begin(
+    {
+      config: {
+        url: '/webhooks/stripe/validate',
+        method: 'POST',
+        data: { body, signature }
+      }
+    },
+    adapter
+  )
+    .next({
+      config: async (prev) => {
+        const event = JSON.parse(body);
+        return { url: `/orders/by-payment/${event.data.object.id}` };
+      }
+    })
+    .next({
+      config: async (prev) => {
+        const order = await prev.json();
+        return {
+          url: `/orders/${order.id}`,
+          method: 'PATCH',
+          data: { status: 'paid' }
+        };
+      }
+    })
+    .next({
+      config: async (prev) => {
+        const order = await prev.json();
+        return {
+          url: '/inventory/reserve',
+          method: 'POST',
+          data: { orderId: order.id }
+        };
+      }
+    })
+    .withErrorHandler(async (error) => {
+      await logError('stripe-webhook', error);
+      await rollbackIfNeeded(error);
+    })
+    .withFinishHandler(() => {
+      metrics.increment('webhook.processed');
+    })
+    .execute();
+}
+```
 
 ### Simple GET Request
 
@@ -1464,6 +1537,77 @@ const result = await RequestChain.begin(
 For a complete guide on creating adapters, see the [adapter template](./packages/ADAPTER_TEMPLATE.md).
 
 ## Common Patterns
+
+### Webhook Processing Pipeline
+
+A common use case for request-orchestrator is processing webhooks that require multiple sequential API calls:
+
+```typescript
+import { RequestChain, FetchRequestAdapter } from 'request-orchestrator';
+
+const adapter = new FetchRequestAdapter();
+
+async function processPaymentWebhook(paymentId: string) {
+  return RequestChain.begin(
+    {
+      config: {
+        url: `/api/payments/${paymentId}`,
+        method: 'GET'
+      }
+    },
+    adapter
+  )
+    .next({
+      config: async (prev) => {
+        const payment = await prev.json();
+        return {
+          url: `/api/orders/${payment.orderId}`,
+          method: 'PATCH',
+          data: { status: 'paid', paymentId: payment.id }
+        };
+      }
+    })
+    .next({
+      config: async (prev) => {
+        const order = await prev.json();
+        return {
+          url: '/api/inventory/reserve',
+          method: 'POST',
+          data: { orderId: order.id, items: order.items }
+        };
+      }
+    })
+    .next({
+      config: async (prev) => {
+        const order = await prev.json();
+        return {
+          url: '/api/emails/send',
+          method: 'POST',
+          data: {
+            to: order.customer.email,
+            template: 'order-confirmation',
+            orderId: order.id
+          }
+        };
+      }
+    })
+    .withErrorHandler(async (error) => {
+      // Centralized error handling with compensation
+      await logError('payment-webhook', error);
+      if (error.step === 'inventory') {
+        // Rollback order status
+        await fetch(`/api/orders/${error.context.orderId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'pending' })
+        });
+      }
+    })
+    .withFinishHandler(() => {
+      metrics.increment('webhook.payment.processed');
+    })
+    .execute();
+}
+```
 
 ### Authentication Flow
 

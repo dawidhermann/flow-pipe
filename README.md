@@ -1,16 +1,121 @@
 # request-orchestrator
 
-A powerful TypeScript library for creating and managing request chains. Request-orchestrator allows you to chain multiple HTTP requests together, transform results, and handle responses with ease.
+**Declarative API workflow orchestration for Node.js**
 
-## TL;DR
+Stop writing spaghetti code for complex API workflows. Request-orchestrator gives you a declarative, type-safe way to orchestrate sequential HTTP operations with built-in error handling, compensation, and observability.
 
-**request-orchestrator** is **not** a new library for API calls—it's a **wrapper** that helps orchestrate complex REST data flows. Built with TypeScript-first design, request-orchestrator wraps your existing HTTP libraries (Fetch, Axios, Superagent, etc.) to simplify chaining multiple requests together. Each request in the chain can access and use results from previous requests, making it perfect for authentication flows, data aggregation, and sequential API orchestration.
+## When you need request-orchestrator
 
-**Best suited for:** Backend services and CLI applications where sequential API calls are common. Can also be used in frontend applications for complex data fetching scenarios.
+❌ **Simple data fetching** → Use `fetch()` or `axios`  
+❌ **React data management** → Use React Query or RTK Query  
+✅ **Complex backend workflows** → Use request-orchestrator  
+✅ **Multi-step API orchestration** → Use request-orchestrator  
+✅ **Webhook processing pipelines** → Use request-orchestrator  
+✅ **LLM agent tool chains** → Use request-orchestrator
 
-### Core Concept
+## Is request-orchestrator for you?
 
-Instead of nested callbacks or complex Promise chains, request-orchestrator provides a fluent API to chain requests:
+✅ **YES** if you're building:
+- Backend API services with complex workflows
+- Webhook processors
+- CLI tools that chain multiple APIs
+- AI agents / LangChain-like systems
+- Microservice orchestration
+- ETL pipelines
+- E-commerce order processing
+
+❌ **NO** if you're building:
+- Simple CRUD APIs
+- React/Vue frontend apps
+- Single-page applications
+- Anything where React Query fits better
+
+🤔 **MAYBE** if:
+- You have 3-5 sequential API calls
+- Error handling is becoming complex
+- You want better testability
+
+## Why not just use fetch() + async/await?
+
+You should! For simple cases like:
+- Single API call
+- 2-3 sequential requests
+- React component data fetching
+
+Use request-orchestrator when you have:
+- 5+ sequential API calls where each depends on previous result
+- Complex error handling with compensation logic
+- Need to transform data between steps
+- Want declarative, testable API workflows
+- Building webhook processors or agent systems
+
+## request-orchestrator vs Alternatives
+
+| Tool | Use Case | request-orchestrator Advantage |
+|------|----------|---------------------|
+| fetch/axios | Simple requests | ❌ Use those instead |
+| React Query | Frontend caching | ❌ Different problem |
+| Bull/BullMQ | Background jobs | ✅ request-orchestrator = sync workflows |
+| Temporal | Complex orchestration | ✅ request-orchestrator = simpler, lighter |
+| Inngest | Serverless workflows | ✅ request-orchestrator = self-hosted |
+
+## Quick Start
+
+### Example: Stripe Webhook Processing
+
+**Without request-orchestrator** - 80+ lines of error handling spaghetti:
+
+```typescript
+app.post('/webhook/stripe', async (req, res) => {
+  try {
+    // Validate signature
+    const sig = req.headers['stripe-signature'];
+    const event = stripe.webhooks.constructEvent(req.body, sig, secret);
+    
+    // Get order
+    const orderResp = await fetch(`/api/orders/by-payment/${event.data.object.id}`);
+    if (!orderResp.ok) {
+      await logError('Failed to fetch order');
+      return res.status(500).json({ error: 'Order fetch failed' });
+    }
+    const order = await orderResp.json();
+    
+    // Update order
+    const updateResp = await fetch(`/api/orders/${order.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'paid' })
+    });
+    if (!updateResp.ok) {
+      await logError('Failed to update order');
+      return res.status(500).json({ error: 'Update failed' });
+    }
+    
+    // Reserve inventory
+    const inventoryResp = await fetch('/api/inventory/reserve', {
+      method: 'POST',
+      body: JSON.stringify({ orderId: order.id })
+    });
+    if (!inventoryResp.ok) {
+      // Rollback logic...
+      await fetch(`/api/orders/${order.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'pending' })
+      });
+      return res.status(500).json({ error: 'Inventory failed' });
+    }
+    
+    // Send email, create shipping label, notify Slack...
+    // More error handling everywhere...
+    
+    res.json({ received: true });
+  } catch (err) {
+    console.error(err);
+    res.status(400).send(`Webhook Error: ${err.message}`);
+  }
+});
+```
+
+**With request-orchestrator** - Clean, declarative workflow:
 
 ```typescript
 import { RequestChain } from 'request-orchestrator';
@@ -18,147 +123,84 @@ import { FetchRequestAdapter } from 'request-orchestrator/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
-// Chain requests - each step can use the previous result
-const result = await RequestChain.begin(
-  { config: { url: 'https://api.example.com/users/1', method: 'GET' } },
-  adapter
-)
-  .next({
-    config: async (previousResult) => {
-      const user = await previousResult.json();
-      return { url: `https://api.example.com/users/${user.id}/posts`, method: 'GET' };
-    }
-  })
-  .execute();
-```
-
-### Request Adapters
-
-request-orchestrator uses a **modular adapter system** - you choose which HTTP library to use. Each adapter is a separate package:
-
-- **`FetchRequestAdapter`** - Native Fetch API (Node.js 18+, browsers) - Zero dependencies
-- **`NodeFetchRequestAdapter`** - node-fetch package (Node.js only)
-- **`AxiosRequestAdapter`** - Axios with automatic JSON parsing
-- **`SuperagentRequestAdapter`** - Superagent for cross-platform support
-
-**Installation:**
-```bash
-npm install @request-orchestrator/core @request-orchestrator/adapter-fetch
-```
-
-**Usage:**
-```typescript
-// All adapters share the same API - easy to switch!
-const fetchAdapter = new FetchRequestAdapter();
-const axiosAdapter = new AxiosRequestAdapter();
-
-// Use any adapter with the same code
-const result = await RequestChain.begin(
-  { config: { url: '...', method: 'GET' } },
-  fetchAdapter // or axiosAdapter, etc.
-).execute();
-```
-
-### Key Features
-
-**1. Chain Requests with Previous Results**
-```typescript
-const result = await RequestChain.begin(
-  { config: { url: 'https://api.example.com/auth/login', method: 'POST', data: {...} } },
-  adapter
-)
-  .next({
-    config: async (previousResult) => {
-      const auth = await previousResult.json();
-      return {
-        url: 'https://api.example.com/user/profile',
-        method: 'GET',
-        headers: { Authorization: `Bearer ${auth.token}` }
-      };
-    }
-  })
-  .execute();
-```
-
-**2. Transform Results with Mappers**
-```typescript
-.next({
-  config: { url: 'https://api.example.com/users/1', method: 'GET' },
-  mapper: async (result) => {
-    const data = await result.json();
-    return data.id; // Transform to just the ID
+app.post('/webhook/stripe', async (req, res) => {
+  try {
+    await processStripeWebhook(req.body, req.headers['stripe-signature']);
+    res.json({ received: true });
+  } catch (err) {
+    res.status(400).send(`Webhook Error: ${err.message}`);
   }
-})
-```
-
-**3. Automatic Retry with Exponential Backoff**
-```typescript
-const result = await RequestChain.begin(
-  {
-    config: { url: 'https://api.example.com/users', method: 'GET' },
-    retry: {
-      maxRetries: 5,
-      retryDelay: 1000,
-      exponentialBackoff: true,
-      retryCondition: retryOnNetworkOrStatusCodes(500, 502, 503, 504, 429)
-    }
-  },
-  adapter
-).execute();
-```
-
-**4. Execute All Requests**
-```typescript
-const results = await RequestChain.begin(...)
-  .next(...)
-  .next(...)
-  .executeAll(); // Returns array of all results
-```
-
-**5. Error Handling**
-```typescript
-await RequestChain.begin(...)
-  .withResultHandler((result) => console.log('Success:', result))
-  .withErrorHandler((error) => console.error('Error:', error))
-  .withFinishHandler(() => console.log('Done'))
-  .execute();
-```
-
-**6. Result Interceptors for Side Effects**
-```typescript
-.next({
-  config: { url: 'https://api.example.com/users/1', method: 'GET' },
-  mapper: async (result) => {
-    const data = await result.json();
-    return data.id; // Transform result
-  },
-  resultInterceptor: async (mappedResult) => {
-    // Perform side effects: logging, caching, analytics
-    console.log('User ID fetched:', mappedResult);
-    await cache.set(`user:${mappedResult}`, mappedResult);
-  }
-})
-```
-
-### Response Formats
-
-Different adapters return different response formats:
-
-- **Fetch/Node-Fetch**: Returns standard `Response` - use `.json()` to parse
-- **Axios**: Returns `AxiosResponse` - data is already parsed in `.data` property
-- **Superagent**: Returns `SuperagentResponse` - data is already parsed in `.body` property
-
-### Security
-
-Built-in SSRF protection blocks private IPs and localhost by default. Configure for development:
-
-```typescript
-const adapter = new FetchRequestAdapter({
-  allowLocalhost: true // For local development only
 });
+
+async function processStripeWebhook(body: string, signature: string) {
+  return RequestChain.begin(
+    {
+      config: {
+        url: '/webhooks/stripe/validate',
+        method: 'POST',
+        data: { body, signature }
+      }
+    },
+    adapter
+  )
+    .next({
+      config: async (prev) => {
+        const event = JSON.parse(body);
+        return { url: `/orders/by-payment/${event.data.object.id}` };
+      }
+    })
+    .next({
+      config: async (prev) => {
+        const order = await prev.json();
+        return {
+          url: `/orders/${order.id}`,
+          method: 'PATCH',
+          data: { status: 'paid' }
+        };
+      }
+    })
+    .next({
+      config: async (prev) => {
+        const order = await prev.json();
+        return {
+          url: '/inventory/reserve',
+          method: 'POST',
+          data: { orderId: order.id }
+        };
+      }
+    })
+    .next({
+      config: async (prev) => {
+        const order = await prev.json();
+        return {
+          url: '/emails/send',
+          method: 'POST',
+          data: { to: order.customer.email, template: 'order-confirmation' }
+        };
+      }
+    })
+    .next({
+      config: async (prev) => {
+        const order = await prev.json();
+        return {
+          url: '/shipping/create-label',
+          method: 'POST',
+          data: { orderId: order.id }
+        };
+      }
+    })
+    .withErrorHandler(async (error) => {
+      await logError('stripe-webhook', error);
+      await rollbackIfNeeded(error);
+    })
+    .withFinishHandler(() => {
+      metrics.increment('webhook.processed');
+    })
+    .execute();
+}
 ```
 
-### Quick Example: Authentication Flow
+### Example: OAuth Flow
 
 ```typescript
 import { RequestChain } from 'request-orchestrator';
@@ -191,7 +233,106 @@ const userData = await RequestChain.begin(
 console.log(await userData.json());
 ```
 
----
+### Simple Example
+
+```typescript
+import { RequestChain } from 'request-orchestrator';
+import { FetchRequestAdapter } from 'request-orchestrator/adapter-fetch';
+
+const adapter = new FetchRequestAdapter();
+
+const result = await RequestChain.begin(
+  { config: { url: 'https://api.example.com/users/1', method: 'GET' } },
+  adapter
+).execute();
+
+console.log(await result.json());
+```
+
+## Key Advantages
+
+### Type Safety Across Steps
+```typescript
+.next({
+  config: (prev) => {
+    // prev is typed based on previous mapper!
+    prev.userId // ← TypeScript knows this exists
+  }
+})
+```
+
+### Declarative Error Handling
+```typescript
+.withErrorHandler((error) => {
+  if (error.step === 'payment') rollbackInventory();
+  if (error.step === 'inventory') refundPayment();
+})
+```
+
+### Testability
+```typescript
+// Mock adapter, test each step independently
+const mockAdapter = new MockRequestAdapter();
+const chain = createWebhookChain(mockAdapter);
+// Test without hitting real APIs
+```
+
+### Observability
+```typescript
+.withFinishHandler(() => metrics.increment('workflow.complete'))
+```
+
+### Composability
+```typescript
+const authFlow = createAuthFlow();
+const dataFlow = createDataFlow();
+
+RequestChain.begin(authFlow, adapter)
+  .next({ request: dataFlow })
+  .execute();
+```
+
+## Installation
+
+```bash
+npm install request-orchestrator
+```
+
+Or install packages individually:
+
+```bash
+# Core package (required)
+npm install @request-orchestrator/core
+
+# Choose your adapter:
+npm install @request-orchestrator/adapter-fetch         # Native Fetch API
+npm install @request-orchestrator/adapter-node-fetch    # node-fetch adapter
+npm install @request-orchestrator/adapter-axios         # Axios adapter
+npm install @request-orchestrator/adapter-superagent    # Superagent adapter
+```
+
+## Request Adapters
+
+Request-orchestrator uses a **modular adapter system** - you choose which HTTP library to use:
+
+- **`FetchRequestAdapter`** - Native Fetch API (Node.js 18+, browsers) - Zero dependencies
+- **`NodeFetchRequestAdapter`** - node-fetch package (Node.js only)
+- **`AxiosRequestAdapter`** - Axios with automatic JSON parsing
+- **`SuperagentRequestAdapter`** - Superagent for cross-platform support
+
+All adapters share the same API - easy to switch:
+
+```typescript
+import { RequestChain } from 'request-orchestrator';
+import { FetchRequestAdapter } from 'request-orchestrator/adapter-fetch';
+
+const adapter = new FetchRequestAdapter();
+
+const result = await RequestChain.begin(
+  { config: { url: '...', method: 'GET' } },
+  adapter
+).execute();
+```
 
 ## Features
 
@@ -202,74 +343,11 @@ console.log(await userData.json());
 - 🎯 **Handler Support**: Result, error, and finish handlers
 - 🔁 **Automatic Retry**: Configurable retry mechanism with exponential backoff
 - 📦 **Batch Execution**: Execute all requests and get all results
-- 🌊 **Progressive Chunk Processing**: Process large streaming responses incrementally without loading everything into memory
-- 🔌 **Modular Adapters**: Choose from Fetch, Axios, or Superagent adapters (or create your own)
+- 🌊 **Progressive Chunk Processing**: Process large streaming responses incrementally
+- 🔌 **Modular Adapters**: Choose from Fetch, Axios, or Superagent adapters
 - 🎨 **Nested Chains**: Support for nested request managers
 - ⚡ **TypeScript First**: Full TypeScript support with type inference
-- 🔒 **Built-in SSRF Protection**: Automatic URL validation to prevent Server-Side Request Forgery attacks
-
-## Installation
-
-### Main Package
-
-Install the main package for core functionality. **Note**: Adapters are NOT included in the main export and must be imported separately using subpath exports or individual packages.
-
-```bash
-npm install request-orchestrator
-```
-
-### Individual Packages (Modular Installation)
-
-You can install packages individually:
-
-```bash
-# Core package (required)
-npm install @request-orchestrator/core
-
-# Choose your adapter (install only what you need):
-npm install @request-orchestrator/adapter-fetch         # Native Fetch API (Node.js 18+ / browsers)
-npm install @request-orchestrator/adapter-node-fetch    # node-fetch adapter (Node.js only)
-npm install @request-orchestrator/adapter-axios         # Axios adapter
-npm install @request-orchestrator/adapter-superagent    # Superagent adapter
-```
-
-**Benefits of modular installation:**
-- 🎯 **Smaller bundles**: Only include the adapter you use
-- 🔄 **Flexibility**: Switch adapters without changing your code
-- 📦 **Independent versioning**: Each adapter can be updated independently
-
-## Quick Start
-
-Here's a minimal example to get you started:
-
-```typescript
-// Option 1: Using the main package with subpath exports
-import { RequestChain } from 'request-orchestrator';
-import { FetchRequestAdapter } from 'request-orchestrator/adapter-fetch';
-
-// Option 2: Using individual packages
-// import { RequestChain } from '@request-orchestrator/core';
-// import { FetchRequestAdapter } from '@request-orchestrator/adapter-fetch';
-
-// Create a simple GET request chain
-const adapter = new FetchRequestAdapter();
-const result = await RequestChain.begin(
-  {
-    config: { 
-      url: 'https://api.example.com/users/1', 
-      method: 'GET' 
-    }
-  },
-  adapter
-).execute();
-
-console.log(await result.json()); // User data
-```
-
-**Important**: 
-- You must provide a request adapter when starting a chain. Adapters handle the actual HTTP requests.
-- Choose the adapter that fits your needs: `FetchRequestAdapter` (native Fetch), `NodeFetchRequestAdapter` (node-fetch), `AxiosRequestAdapter`, or `SuperagentRequestAdapter`.
-- See the [Adapters](#adapters) section in the full documentation for details on each adapter and when to use them.
+- 🔒 **Built-in SSRF Protection**: Automatic URL validation
 
 ## Documentation
 
