@@ -4,61 +4,6 @@
 
 Stop writing spaghetti code for complex API workflows. Request-orchestrator gives you a declarative, type-safe way to orchestrate sequential HTTP operations with built-in error handling, compensation, and observability.
 
-## When you need request-orchestrator
-
-❌ **Simple data fetching** → Use `fetch()` or `axios`  
-❌ **React data management** → Use React Query or RTK Query  
-✅ **Complex backend workflows** → Use request-orchestrator  
-✅ **Multi-step API orchestration** → Use request-orchestrator  
-✅ **Webhook processing pipelines** → Use request-orchestrator  
-✅ **LLM agent tool chains** → Use request-orchestrator
-
-## Is request-orchestrator for you?
-
-✅ **YES** if you're building:
-- Backend API services with complex workflows
-- Webhook processors
-- CLI tools that chain multiple APIs
-- AI agents / LangChain-like systems
-- Microservice orchestration
-- ETL pipelines
-- E-commerce order processing
-
-❌ **NO** if you're building:
-- Simple CRUD APIs
-- React/Vue frontend apps
-- Single-page applications
-- Anything where React Query fits better
-
-🤔 **MAYBE** if:
-- You have 3-5 sequential API calls
-- Error handling is becoming complex
-- You want better testability
-
-## Why not just use fetch() + async/await?
-
-You should! For simple cases like:
-- Single API call
-- 2-3 sequential requests
-- React component data fetching
-
-Use request-orchestrator when you have:
-- 5+ sequential API calls where each depends on previous result
-- Complex error handling with compensation logic
-- Need to transform data between steps
-- Want declarative, testable API workflows
-- Building webhook processors or agent systems
-
-## request-orchestrator vs Alternatives
-
-| Tool | Use Case | request-orchestrator Advantage |
-|------|----------|---------------------|
-| fetch/axios | Simple requests | ❌ Use those instead |
-| React Query | Frontend caching | ❌ Different problem |
-| Bull/BullMQ | Background jobs | ✅ request-orchestrator = sync workflows |
-| Temporal | Complex orchestration | ✅ request-orchestrator = simpler, lighter |
-| Inngest | Serverless workflows | ✅ request-orchestrator = self-hosted |
-
 ## Quick Start
 
 ### Example: Stripe Webhook Processing
@@ -348,6 +293,61 @@ const result = await RequestChain.begin(
 - 🎨 **Nested Chains**: Support for nested request managers
 - ⚡ **TypeScript First**: Full TypeScript support with type inference
 - 🔒 **Built-in SSRF Protection**: Automatic URL validation
+
+## When you need request-orchestrator
+
+❌ **Simple data fetching** → Use `fetch()` or `axios`  
+❌ **React data management** → Use React Query or RTK Query  
+✅ **Complex backend workflows** → Use request-orchestrator  
+✅ **Multi-step API orchestration** → Use request-orchestrator  
+✅ **Webhook processing pipelines** → Use request-orchestrator  
+✅ **LLM agent tool chains** → Use request-orchestrator
+
+## Is request-orchestrator for you?
+
+✅ **YES** if you're building:
+- Backend API services with complex workflows
+- Webhook processors
+- CLI tools that chain multiple APIs
+- AI agents / LangChain-like systems
+- Microservice orchestration
+- ETL pipelines
+- E-commerce order processing
+
+❌ **NO** if you're building:
+- Simple CRUD APIs
+- React/Vue frontend apps
+- Single-page applications
+- Anything where React Query fits better
+
+🤔 **MAYBE** if:
+- You have 3-5 sequential API calls
+- Error handling is becoming complex
+- You want better testability
+
+## Why not just use fetch() + async/await?
+
+You should! For simple cases like:
+- Single API call
+- 2-3 sequential requests
+- React component data fetching
+
+Use request-orchestrator when you have:
+- 5+ sequential API calls where each depends on previous result
+- Complex error handling with compensation logic
+- Need to transform data between steps
+- Want declarative, testable API workflows
+- Building webhook processors or agent systems
+
+## request-orchestrator vs Alternatives
+
+| Tool | Use Case | request-orchestrator Advantage |
+|------|----------|---------------------|
+| fetch/axios | Simple requests | ❌ Use those instead |
+| React Query | Frontend caching | ❌ Different problem |
+| Bull/BullMQ | Background jobs | ✅ request-orchestrator = sync workflows |
+| Temporal | Complex orchestration | ✅ request-orchestrator = simpler, lighter |
+| Inngest | Serverless workflows | ✅ request-orchestrator = self-hosted |
 
 ## Documentation
 
