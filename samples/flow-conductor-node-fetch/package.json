@@ -1,0 +1,32 @@
+{
+  "name": "flow-conductor-node-fetch-example",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Example project demonstrating flow-conductor with node-fetch adapter using JSONPlaceholder API",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsx index.ts",
+    "dev": "tsx watch index.ts"
+  },
+  "keywords": [
+    "flow-conductor",
+    "node-fetch",
+    "example",
+    "http",
+    "api"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@flow-conductor/core": "^1.0.0",
+    "@flow-conductor/adapter-node-fetch": "^1.0.0",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/node-fetch": "^2.6.11",
+    "tsx": "^4.7.0",
+    "typescript": "^5.9.3"
+  }
+}
+
