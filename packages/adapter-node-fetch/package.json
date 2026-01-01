@@ -44,6 +44,9 @@
     "directory": "packages/adapter-node-fetch"
   },
   "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
     "node": ">=18.0.0"
   },
@@ -67,5 +70,3 @@
     "typescript-eslint": "^8.50.1"
   }
 }
-
-
