@@ -209,8 +209,10 @@ console.log(await result.json());
 ### Declarative Error Handling
 ```typescript
 .withErrorHandler((error) => {
-  if (error.step === 'payment') rollbackInventory();
-  if (error.step === 'inventory') refundPayment();
+  // Access request context from error.cause
+  const config = error.cause?.requestConfig;
+  if (config?.id === 'payment') rollbackInventory();
+  if (config?.id === 'inventory') refundPayment();
 })
 ```
 

@@ -611,6 +611,38 @@ await begin(
 ).execute();
 ```
 
+##### Error Context Information
+
+Error handlers receive additional context information through the `error.cause` property. This includes the request configuration that failed:
+
+```typescript
+await begin(
+  {
+    config: { url: 'https://api.example.com/users', method: 'GET' },
+    errorHandler: (error) => {
+      // Access request configuration from error.cause
+      const requestConfig = error.cause?.requestConfig;
+      
+      if (requestConfig) {
+        console.error('Failed request:', {
+          url: requestConfig.url,
+          method: requestConfig.method,
+          error: error.message
+        });
+        // Use requestConfig for logging, retry logic, or error reporting
+      }
+    }
+  },
+  adapter
+).execute();
+```
+
+**Important notes:**
+- `error.cause.requestConfig` contains the request configuration for **request stages** (stages with `config` property)
+- `error.cause.requestConfig` is `undefined` for **manager stages** (nested chains with `request` property)
+- This information is available in both stage-level and chain-level error handlers
+- The request config is the actual configuration object used for the request, including any dynamic values resolved from factory functions
+
 ##### Error Handler with Mapper
 
 If an error occurs before a mapper executes, the error handler is called and the mapper is skipped:
@@ -1902,6 +1934,14 @@ try {
     .withErrorHandler((error) => {
       // Log error but don't throw
       console.error('Request failed:', error);
+      // Access request configuration from error.cause
+      const requestConfig = error.cause?.requestConfig;
+      if (requestConfig) {
+        console.error('Failed request details:', {
+          url: requestConfig.url,
+          method: requestConfig.method
+        });
+      }
     })
     .execute();
   
@@ -1928,7 +1968,9 @@ try {
       errorHandler: async (error) => {
         // Stage-specific error handling
         console.error('Failed to fetch user:', error.message);
-        await logError('user-fetch', error);
+        // Access request configuration from error.cause
+        const requestConfig = error.cause?.requestConfig;
+        await logError('user-fetch', error, requestConfig);
       }
     },
     adapter
@@ -1938,13 +1980,20 @@ try {
       errorHandler: async (error) => {
         // Different handling for posts stage
         console.error('Failed to fetch posts:', error.message);
-        await logError('posts-fetch', error);
+        // Access request configuration from error.cause
+        const requestConfig = error.cause?.requestConfig;
+        await logError('posts-fetch', error, requestConfig);
         // Could perform stage-specific cleanup or fallback
       }
     })
     .withErrorHandler((error) => {
       // Chain-level handler called after stage handlers
       console.error('Chain failed:', error.message);
+      // Access request configuration from error.cause
+      const requestConfig = error.cause?.requestConfig;
+      if (requestConfig) {
+        console.error('Failed at:', requestConfig.url);
+      }
     })
     .execute();
   
@@ -1966,6 +2015,11 @@ const result = await begin(
     errorHandler: (error) => {
       // Stage-specific: log, cleanup, or perform recovery
       console.error('User fetch failed:', error);
+      // Access request configuration from error.cause
+      const requestConfig = error.cause?.requestConfig;
+      if (requestConfig) {
+        console.error('Failed request:', requestConfig.url);
+      }
       // Could return a default value or perform fallback logic
     }
   },
@@ -1976,13 +2030,24 @@ const result = await begin(
     errorHandler: (error) => {
       // Stage-specific: handle posts fetch failure
       console.error('Posts fetch failed:', error);
+      // Access request configuration from error.cause
+      const requestConfig = error.cause?.requestConfig;
+      if (requestConfig) {
+        console.error('Failed request:', requestConfig.url);
+      }
     }
   })
   .withErrorHandler((error) => {
     // Chain-level: centralized error handling
     // Called after stage handlers
     metrics.increment('chain.errors');
-    notifyAdmin('Chain execution failed', error);
+    // Access request configuration from error.cause
+    const requestConfig = error.cause?.requestConfig;
+    if (requestConfig) {
+      notifyAdmin('Chain execution failed', { error, failedAt: requestConfig.url });
+    } else {
+      notifyAdmin('Chain execution failed', error);
+    }
   })
   .execute();
 ```
@@ -2165,6 +2230,8 @@ interface ChunkHandler<Chunk = unknown> {
 ```typescript
 interface ErrorHandler {
   (error: Error): void;
+  // The error object includes error.cause.requestConfig containing the request configuration
+  // that failed (undefined for manager stages)
 }
 
 interface ResultHandler<T = unknown> {

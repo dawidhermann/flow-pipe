@@ -113,7 +113,7 @@ export default class RequestChain<
       if (this.resultHandler && result) {
         this.resultHandler(result);
       }
-      return result as Out;
+      return result;
     } catch (error) {
       if (this.errorHandler) {
         this.errorHandler(error);
@@ -262,9 +262,12 @@ export default class RequestChain<
         requestEntityList[i].result = result as Out;
         results.push(result);
       } catch (error) {
+        const requestConfig = isPipelineRequestStage(requestEntity)
+          ? requestEntity.config
+          : undefined;
+        error.cause = { ...error.cause, requestConfig };
         if (requestEntity.errorHandler) {
           await requestEntity.errorHandler(error);
-          
         }
         throw error;
       }

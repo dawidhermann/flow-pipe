@@ -504,6 +504,10 @@ describe("Retry mechanism", () => {
     test("should call error handler after all retries exhausted", async () => {
       resetFetchMock();
       const networkError = new TypeError("Network request failed");
+      const requestConfig: IRequestConfig = {
+        url: "http://example.com/users",
+        method: "GET",
+      };
       fetchMock
         .mockReject(networkError)
         .mockReject(networkError)
@@ -520,7 +524,7 @@ describe("Retry mechanism", () => {
           IRequestConfig
         >(
           {
-            config: { url: "http://example.com/users", method: "GET" },
+            config: requestConfig,
             retry: {
               maxRetries: 3,
             },
@@ -537,6 +541,13 @@ describe("Retry mechanism", () => {
         assert.ok(errorHandlerCalled);
         assert.ok(caughtError instanceof TypeError);
         assert.strictEqual(getFetchCalls().length, 4);
+        // Verify requestConfig is in error.cause
+        assert.ok(caughtError?.cause);
+        assert.deepStrictEqual(
+          (caughtError.cause as { requestConfig?: IRequestConfig })
+            .requestConfig,
+          requestConfig
+        );
       }
     });
   });

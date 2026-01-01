@@ -157,6 +157,7 @@ describe("Handlers test", () => {
 
   test("Error handler test", async () => {
     resetFetchMock();
+    const requestConfig = { url: "http://example.com/users", method: "GET" };
     fetchMock.mockReject(new Error("fake error message"));
     await RequestChain.begin<
       TestRequestResult<typeof firstUser>,
@@ -164,12 +165,15 @@ describe("Handlers test", () => {
       IRequestConfig
     >(
       {
-        config: { url: "http://example.com/users", method: "GET" },
+        config: requestConfig,
       },
       new TestAdapter()
     )
       .withErrorHandler((error: Error): void => {
         assert.strictEqual(error.message, "fake error message");
+        // Verify requestConfig is in error.cause
+        assert.ok(error.cause);
+        assert.deepStrictEqual(error.cause.requestConfig, requestConfig);
       })
       .execute()
       .catch(() => {
@@ -179,6 +183,7 @@ describe("Handlers test", () => {
 
   test("Finish handler test", async () => {
     resetFetchMock();
+    const requestConfig = { url: "http://example.com/users", method: "GET" };
     fetchMock.mockReject(new Error("fake error message"));
     const finishHandler = createMockFn();
     await RequestChain.begin<
@@ -187,12 +192,15 @@ describe("Handlers test", () => {
       IRequestConfig
     >(
       {
-        config: { url: "http://example.com/users", method: "GET" },
+        config: requestConfig,
       },
       new TestAdapter()
     )
       .withErrorHandler((error: Error): void => {
         assert.strictEqual(error.message, "fake error message");
+        // Verify requestConfig is in error.cause
+        assert.ok(error.cause);
+        assert.deepStrictEqual(error.cause.requestConfig, requestConfig);
       })
       .withFinishHandler(finishHandler)
       .execute()
@@ -204,6 +212,7 @@ describe("Handlers test", () => {
 
   test("Finish handler test with all handlers", async () => {
     resetFetchMock();
+    const requestConfig = { url: "http://example.com/users", method: "GET" };
     fetchMock.mockReject(new Error("fake error message"));
     const resultHandler = createMockFn();
     const errorHandler = createMockFn();
@@ -214,7 +223,7 @@ describe("Handlers test", () => {
       IRequestConfig
     >(
       {
-        config: { url: "http://example.com/users", method: "GET" },
+        config: requestConfig,
       },
       new TestAdapter()
     )
@@ -228,6 +237,12 @@ describe("Handlers test", () => {
     assert.ok(!resultHandler.toHaveBeenCalled());
     assert.ok(errorHandler.toHaveBeenCalled());
     assert.ok(finishHandler.toHaveBeenCalled());
+    // Verify requestConfig is in error.cause for global error handler
+    assert.ok(errorHandler.calls[0][0].cause);
+    assert.deepStrictEqual(
+      errorHandler.calls[0][0].cause.requestConfig,
+      requestConfig
+    );
   });
 });
 
@@ -309,27 +324,31 @@ describe("Returning all requests", () => {
   test("Execute all with error handler", async () => {
     resetFetchMock();
     const resultHandler = createMockFn();
+    const requestConfig = { url: "http://example.com/users", method: "GET" };
     fetchMock
       .once(JSON.stringify(firstUser))
       .mockReject(new Error("fake error message"))
       .once(JSON.stringify(thirdUser));
     const requestChain = RequestChain.begin<string, Response, IRequestConfig>(
       {
-        config: { url: "http://example.com/users", method: "GET" },
+        config: requestConfig,
       },
       new TestAdapter()
     )
       .next<TestRequestResult<typeof firstUser>>({
-        config: { url: "http://example.com/users", method: "GET" },
+        config: requestConfig,
       })
       .next<string>({
-        config: { url: "http://example.com/users", method: "GET" },
+        config: requestConfig,
         mapper: (result: Response) => JSON.parse(result.body as any).name,
       });
     requestChain
       .withResultHandler(resultHandler)
       .withErrorHandler((error: Error): void => {
         assert.strictEqual(error.message, "fake error message");
+        // Verify requestConfig is in error.cause for global error handler
+        assert.ok(error.cause);
+        assert.deepStrictEqual(error.cause.requestConfig, requestConfig);
       });
     await requestChain.executeAll().catch(() => {
       // Catch used only for tests - error handler should be called
@@ -506,15 +525,19 @@ describe("Exported begin function test", () => {
 
   test("Error handler test", async () => {
     resetFetchMock();
+    const requestConfig = { url: "http://example.com/users", method: "GET" };
     fetchMock.mockReject(new Error("fake error message"));
     await begin<TestRequestResult<typeof firstUser>, Response, IRequestConfig>(
       {
-        config: { url: "http://example.com/users", method: "GET" },
+        config: requestConfig,
       },
       new TestAdapter()
     )
       .withErrorHandler((error: Error): void => {
         assert.strictEqual(error.message, "fake error message");
+        // Verify requestConfig is in error.cause
+        assert.ok(error.cause);
+        assert.deepStrictEqual(error.cause.requestConfig, requestConfig);
       })
       .execute()
       .catch(() => {
@@ -524,16 +547,20 @@ describe("Exported begin function test", () => {
 
   test("Finish handler test", async () => {
     resetFetchMock();
+    const requestConfig = { url: "http://example.com/users", method: "GET" };
     fetchMock.mockReject(new Error("fake error message"));
     const finishHandler = createMockFn();
     await begin<TestRequestResult<typeof firstUser>, Response, IRequestConfig>(
       {
-        config: { url: "http://example.com/users", method: "GET" },
+        config: requestConfig,
       },
       new TestAdapter()
     )
       .withErrorHandler((error: Error): void => {
         assert.strictEqual(error.message, "fake error message");
+        // Verify requestConfig is in error.cause
+        assert.ok(error.cause);
+        assert.deepStrictEqual(error.cause.requestConfig, requestConfig);
       })
       .withFinishHandler(finishHandler)
       .execute()
@@ -545,13 +572,14 @@ describe("Exported begin function test", () => {
 
   test("All handlers test", async () => {
     resetFetchMock();
+    const requestConfig = { url: "http://example.com/users", method: "GET" };
     fetchMock.mockReject(new Error("fake error message"));
     const resultHandler = createMockFn();
     const errorHandler = createMockFn();
     const finishHandler = createMockFn();
     await begin<TestRequestResult<typeof firstUser>, Response, IRequestConfig>(
       {
-        config: { url: "http://example.com/users", method: "GET" },
+        config: requestConfig,
       },
       new TestAdapter()
     )
@@ -565,6 +593,12 @@ describe("Exported begin function test", () => {
     assert.ok(!resultHandler.toHaveBeenCalled());
     assert.ok(errorHandler.toHaveBeenCalled());
     assert.ok(finishHandler.toHaveBeenCalled());
+    // Verify requestConfig is in error.cause for global error handler
+    assert.ok(errorHandler.calls[0][0].cause);
+    assert.deepStrictEqual(
+      errorHandler.calls[0][0].cause.requestConfig,
+      requestConfig
+    );
   });
 
   test("Execute all", async () => {
@@ -650,27 +684,31 @@ describe("Exported begin function test", () => {
   test("Execute all with error handler", async () => {
     resetFetchMock();
     const resultHandler = createMockFn();
+    const requestConfig = { url: "http://example.com/users", method: "GET" };
     fetchMock
       .once(JSON.stringify(firstUser))
       .mockReject(new Error("fake error message"))
       .once(JSON.stringify(thirdUser));
     const requestChain = begin<string, Response, IRequestConfig>(
       {
-        config: { url: "http://example.com/users", method: "GET" },
+        config: requestConfig,
       },
       new TestAdapter()
     )
       .next<TestRequestResult<typeof firstUser>>({
-        config: { url: "http://example.com/users", method: "GET" },
+        config: requestConfig,
       })
       .next<string>({
-        config: { url: "http://example.com/users", method: "GET" },
+        config: requestConfig,
         mapper: (result: Response) => JSON.parse(result.body as any).name,
       });
     requestChain
       .withResultHandler(resultHandler)
       .withErrorHandler((error: Error): void => {
         assert.strictEqual(error.message, "fake error message");
+        // Verify requestConfig is in error.cause for global error handler
+        assert.ok(error.cause);
+        assert.deepStrictEqual(error.cause.requestConfig, requestConfig);
       });
     await requestChain.executeAll().catch(() => {
       // Catch used only for tests - error handler should be called
@@ -1270,6 +1308,7 @@ describe("Error handler test", () => {
   test("Basic error handler execution", async () => {
     resetFetchMock();
     const errorMessage = "Request failed";
+    const requestConfig = { url: "http://example.com/users", method: "GET" };
     fetchMock.mockReject(new Error(errorMessage));
     const errorHandler = createMockFn();
     let errorThrown = false;
@@ -1281,7 +1320,7 @@ describe("Error handler test", () => {
         IRequestConfig
       >(
         {
-          config: { url: "http://example.com/users", method: "GET" },
+          config: requestConfig,
           errorHandler: (error) => {
             errorHandler(error);
           },
@@ -1296,12 +1335,19 @@ describe("Error handler test", () => {
     assert.ok(errorHandler.toHaveBeenCalled());
     assert.strictEqual(errorHandler.calls.length, 1);
     assert.strictEqual(errorHandler.calls[0][0].message, errorMessage);
+    // Verify requestConfig is in error.cause
+    assert.ok(errorHandler.calls[0][0].cause);
+    assert.deepStrictEqual(
+      errorHandler.calls[0][0].cause.requestConfig,
+      requestConfig
+    );
     assert.ok(errorThrown); // Error should still be thrown after handler
   });
 
   test("Error handler receives correct error", async () => {
     resetFetchMock();
     const customError = new TypeError("Network error");
+    const requestConfig = { url: "http://example.com/users", method: "GET" };
     fetchMock.mockReject(customError);
     let receivedError: Error | undefined;
 
@@ -1312,7 +1358,7 @@ describe("Error handler test", () => {
         IRequestConfig
       >(
         {
-          config: { url: "http://example.com/users", method: "GET" },
+          config: requestConfig,
           errorHandler: (error) => {
             receivedError = error;
           },
@@ -1327,6 +1373,9 @@ describe("Error handler test", () => {
     assert.strictEqual(receivedError, customError);
     assert.strictEqual(receivedError.name, "TypeError");
     assert.strictEqual(receivedError.message, "Network error");
+    // Verify requestConfig is in error.cause
+    assert.ok(receivedError.cause);
+    assert.deepStrictEqual(receivedError.cause.requestConfig, requestConfig);
   });
 
   test("Async error handler execution", async () => {
@@ -1359,7 +1408,6 @@ describe("Error handler test", () => {
     assert.ok(handlerResolved);
     assert.ok(errorHandler.toHaveBeenCalled());
   });
-
 
   test("Error handler with nested manager stage", async () => {
     resetFetchMock();
@@ -1397,11 +1445,15 @@ describe("Error handler test", () => {
 
     assert.ok(errorHandler.toHaveBeenCalled());
     assert.strictEqual(errorHandler.calls[0][0].message, errorMessage);
+    // For manager stages, requestConfig should be undefined
+    assert.ok(errorHandler.calls[0][0].cause);
+    assert.strictEqual(errorHandler.calls[0][0].cause.requestConfig, undefined);
   });
 
   test("Error handler with retry - called on final failure", async () => {
     resetFetchMock();
     const errorMessage = "Network error";
+    const requestConfig = { url: "http://example.com/users", method: "GET" };
     fetchMock
       .mockReject(new TypeError(errorMessage))
       .mockReject(new TypeError(errorMessage))
@@ -1415,7 +1467,7 @@ describe("Error handler test", () => {
         IRequestConfig
       >(
         {
-          config: { url: "http://example.com/users", method: "GET" },
+          config: requestConfig,
           retry: {
             maxRetries: 2,
             retryDelay: 10,
@@ -1433,6 +1485,12 @@ describe("Error handler test", () => {
     // Error handler should be called once after all retries are exhausted
     assert.ok(errorHandler.toHaveBeenCalled());
     assert.strictEqual(errorHandler.calls.length, 1);
+    // Verify requestConfig is in error.cause
+    assert.ok(errorHandler.calls[0][0].cause);
+    assert.deepStrictEqual(
+      errorHandler.calls[0][0].cause.requestConfig,
+      requestConfig
+    );
   });
 
   test("Error handler with mapper - error occurs before mapper", async () => {
@@ -1443,11 +1501,7 @@ describe("Error handler test", () => {
     let mapperCalled = false;
 
     try {
-      await RequestChain.begin<
-        typeof firstUser,
-        Response,
-        IRequestConfig
-      >(
+      await RequestChain.begin<typeof firstUser, Response, IRequestConfig>(
         {
           config: { url: "http://example.com/users", method: "GET" },
           mapper: () => {
@@ -1527,9 +1581,11 @@ describe("Error handler test", () => {
   test("Error handler execution order - called before error propagation", async () => {
     resetFetchMock();
     const errorMessage = "Request failed";
+    const requestConfig = { url: "http://example.com/users", method: "GET" };
     fetchMock.mockReject(new Error(errorMessage));
     const executionOrder: string[] = [];
     const errorHandler = createMockFn();
+    let globalErrorHandlerReceivedError: Error | undefined;
 
     try {
       await RequestChain.begin<
@@ -1538,7 +1594,7 @@ describe("Error handler test", () => {
         IRequestConfig
       >(
         {
-          config: { url: "http://example.com/users", method: "GET" },
+          config: requestConfig,
           errorHandler: (error) => {
             executionOrder.push("errorHandler");
             errorHandler(error);
@@ -1546,8 +1602,9 @@ describe("Error handler test", () => {
         },
         new TestAdapter()
       )
-        .withErrorHandler(() => {
+        .withErrorHandler((error) => {
           executionOrder.push("chainErrorHandler");
+          globalErrorHandlerReceivedError = error;
         })
         .execute();
     } catch {
@@ -1556,7 +1613,22 @@ describe("Error handler test", () => {
 
     // Stage error handler should be called before chain error handler
     assert.ok(executionOrder.includes("errorHandler"));
-    assert.ok(executionOrder.indexOf("errorHandler") < executionOrder.indexOf("chainErrorHandler"));
+    assert.ok(
+      executionOrder.indexOf("errorHandler") <
+        executionOrder.indexOf("chainErrorHandler")
+    );
+    // Verify both handlers receive requestConfig in error.cause
+    assert.ok(errorHandler.calls[0][0].cause);
+    assert.deepStrictEqual(
+      errorHandler.calls[0][0].cause.requestConfig,
+      requestConfig
+    );
+    assert.ok(globalErrorHandlerReceivedError);
+    assert.ok(globalErrorHandlerReceivedError.cause);
+    assert.deepStrictEqual(
+      globalErrorHandlerReceivedError.cause.requestConfig,
+      requestConfig
+    );
   });
 
   test("Error handler with result interceptor - error occurs before interceptor", async () => {

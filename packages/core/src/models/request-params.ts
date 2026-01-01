@@ -28,6 +28,8 @@ type HttpMethods =
  * ```
  */
 export interface IRequestConfig {
+  /** Optional request ID */
+  id?: string;
   /** The URL to make the request to */
   url: string;
   /** The HTTP method to use */
