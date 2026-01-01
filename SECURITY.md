@@ -60,7 +60,7 @@ By default, all adapters validate URLs before making requests:
 For development or testing scenarios, you can configure validation:
 
 ```typescript
-import { FetchRequestAdapter } from 'flow-conductor/adapter-fetch';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 // Allow localhost for local development
 const devAdapter = new FetchRequestAdapter({
@@ -94,7 +94,7 @@ const unsafeAdapter = new FetchRequestAdapter({
 When a potentially dangerous URL is detected, flow-conductor throws an `SSRFError`:
 
 ```typescript
-import { SSRFError } from 'flow-conductor';
+import { SSRFError } from '@flow-conductor/core';
 
 try {
   await RequestChain.begin(

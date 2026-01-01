@@ -63,8 +63,8 @@ app.post('/webhook/stripe', async (req, res) => {
 **With flow-conductor** - Clean, declarative workflow:
 
 ```typescript
-import { begin } from 'flow-conductor';
-import { FetchRequestAdapter } from 'flow-conductor/adapter-fetch';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -135,6 +135,7 @@ async function processStripeWebhook(body: string, signature: string) {
       }
     })
     .withErrorHandler(async (error) => {
+      // Example error handling - implement these functions in your application
       await logError('stripe-webhook', error);
       await rollbackIfNeeded(error);
     })
@@ -148,8 +149,8 @@ async function processStripeWebhook(body: string, signature: string) {
 ### Example: OAuth Flow
 
 ```typescript
-import { begin } from 'flow-conductor';
-import { FetchRequestAdapter } from 'flow-conductor/adapter-fetch';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -181,8 +182,8 @@ console.log(await userData.json());
 ### Simple Example
 
 ```typescript
-import { begin } from 'flow-conductor';
-import { FetchRequestAdapter } from 'flow-conductor/adapter-fetch';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -270,8 +271,8 @@ Flow-conductor uses a **modular adapter system** - you choose which HTTP library
 All adapters share the same API - easy to switch:
 
 ```typescript
-import { begin } from 'flow-conductor';
-import { FetchRequestAdapter } from 'flow-conductor/adapter-fetch';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 

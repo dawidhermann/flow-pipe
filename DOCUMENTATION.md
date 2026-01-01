@@ -34,8 +34,8 @@ Flow-conductor is a **backend orchestration tool** for building complex API work
 Here's a complete example showing how flow-conductor simplifies complex workflows:
 
 ```typescript
-import { begin } from 'flow-conductor';
-import { FetchRequestAdapter } from 'flow-conductor/adapter-fetch';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -77,6 +77,7 @@ async function processStripeWebhook(body: string, signature: string) {
       }
     })
     .withErrorHandler(async (error) => {
+      // Example error handling - implement these functions in your application
       await logError('stripe-webhook', error);
       await rollbackIfNeeded(error);
     })
@@ -92,7 +93,8 @@ async function processStripeWebhook(body: string, signature: string) {
 You can start a request chain using the exported `begin()` function:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -121,7 +123,8 @@ console.log(await result2.json()); // Response data
 Chain multiple requests together. Each request can use the result from the previous one:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -164,7 +167,8 @@ console.log(comments);
 Each `.next()` call receives the result from the previous request, allowing you to build dynamic request chains:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -210,7 +214,8 @@ console.log(settings);
 Transform request results using mapper functions. Mapped results are then available to subsequent requests:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -253,7 +258,8 @@ Result interceptors allow you to perform side effects or additional processing o
 #### Basic Result Interceptor
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -405,7 +411,8 @@ const result = await begin(
 All HTTP methods are supported:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -456,7 +463,8 @@ Handlers allow you to react to different stages of request execution.
 Handle successful results:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -485,7 +493,8 @@ Flow-conductor supports two types of error handlers:
 Handle errors for the entire request chain:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -510,7 +519,8 @@ await begin(
 Handle errors for individual stages in the chain. Stage-level error handlers are called when a specific stage fails, before the error propagates to chain-level handlers:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -729,7 +739,8 @@ await begin(
 Execute code after request completion (success or failure):
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -759,7 +770,8 @@ await begin(
 Use multiple handlers together:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -794,7 +806,8 @@ flow-conductor includes a powerful retry mechanism that automatically retries fa
 Retry failed requests with default settings (retries on network errors):
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -814,7 +827,9 @@ const result = await begin(
 Retry on specific HTTP status codes (e.g., 5xx server errors or 429 rate limits):
 
 ```typescript
-import { begin, FetchRequestAdapter, retryOnStatusCodes } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
+import { retryOnStatusCodes } from '@flow-conductor/core';
 
 const adapter = new FetchRequestAdapter();
 
@@ -835,7 +850,9 @@ const result = await begin(
 Retry on both network errors and specific HTTP status codes:
 
 ```typescript
-import { begin, FetchRequestAdapter, retryOnNetworkOrStatusCodes } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
+import { retryOnNetworkOrStatusCodes } from '@flow-conductor/core';
 
 const adapter = new FetchRequestAdapter();
 
@@ -856,7 +873,9 @@ const result = await begin(
 Define custom logic for when to retry:
 
 ```typescript
-import { begin, FetchRequestAdapter, getErrorStatus } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
+import { getErrorStatus } from '@flow-conductor/core';
 
 const adapter = new FetchRequestAdapter();
 
@@ -975,7 +994,8 @@ flow-conductor supports progressive chunk processing for streaming responses, al
 Process streaming responses chunk by chunk as they arrive:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -1172,7 +1192,8 @@ Progressive chunk processing is ideal for:
 Execute all requests and get all results as an array. Each step can use the previous result:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -1220,7 +1241,8 @@ console.log(user, posts, commentCount);
 Handle all results together. Each step builds on the previous one:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -1276,7 +1298,8 @@ await begin(
 Handle errors when executing all requests. Each step depends on the previous:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -1320,7 +1343,8 @@ await begin(
 Chain request managers together. Nested chains can also use previous results:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -1353,7 +1377,8 @@ console.log(await result.json());
 Alternatively, using the `begin()` function:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -1379,7 +1404,8 @@ const result = await begin(
 Use `addAll()` to add multiple requests to a chain:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -1674,11 +1700,11 @@ import { FetchRequestAdapter } from 'flow-conductor/adapter-fetch';
 
 **Option 3: Using subpath exports for all adapters**
 ```typescript
-import { begin } from 'flow-conductor';
-import { FetchRequestAdapter } from 'flow-conductor/adapter-fetch';
-import { NodeFetchRequestAdapter } from 'flow-conductor/adapter-node-fetch';
-import { AxiosRequestAdapter } from 'flow-conductor/adapter-axios';
-import { SuperagentRequestAdapter } from 'flow-conductor/adapter-superagent';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
+import { NodeFetchRequestAdapter } from '@flow-conductor/adapter-node-fetch';
+import { AxiosRequestAdapter } from '@flow-conductor/adapter-axios';
+import { SuperagentRequestAdapter } from '@flow-conductor/adapter-superagent';
 ```
 
 **Important**: The main package (`flow-conductor`) only exports core functionality. Adapters must be imported from their respective subpath exports (`flow-conductor/adapter-*`) or from individual packages (`@flow-conductor/adapter-*`).
@@ -1722,7 +1748,7 @@ The modular adapter system makes it easy to create custom adapters for any HTTP 
 ```typescript
 import { RequestAdapter, IRequestConfig } from '@flow-conductor/core';
 // Or from the main package:
-// import { RequestAdapter, IRequestConfig } from 'flow-conductor';
+// import { RequestAdapter, IRequestConfig } from '@flow-conductor/core';
 // Note: Adapters themselves must be imported from subpath exports or individual packages
 
 class CustomAdapter extends RequestAdapter<Response, IRequestConfig> {
@@ -1769,7 +1795,8 @@ For a complete guide on creating adapters, see the [adapter template](./packages
 A common use case for flow-conductor is processing webhooks that require multiple sequential API calls:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -1838,7 +1865,8 @@ async function processPaymentWebhook(paymentId: string) {
 ### Authentication Flow
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -1871,7 +1899,8 @@ console.log(await userData.json());
 ### Data Aggregation
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -1920,7 +1949,8 @@ Flow-conductor provides multiple ways to handle errors:
 Handle errors for the entire chain:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -1957,7 +1987,8 @@ try {
 Handle errors for individual stages with stage-specific recovery logic:
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -2057,7 +2088,9 @@ const result = await begin(
 Handle transient failures with automatic retry and exponential backoff:
 
 ```typescript
-import { begin, FetchRequestAdapter, retryOnNetworkOrStatusCodes } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
+import { retryOnNetworkOrStatusCodes } from '@flow-conductor/core';
 
 const adapter = new FetchRequestAdapter();
 
@@ -2081,7 +2114,8 @@ console.log(await result.json());
 ### Conditional Requests
 
 ```typescript
-import { begin, FetchRequestAdapter } from 'flow-conductor';
+import { begin } from '@flow-conductor/core';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -2255,7 +2289,8 @@ By default, all adapters block potentially dangerous URLs:
 - ✅ **Validates URL format**: Ensures URLs are properly formatted
 
 ```typescript
-import { FetchRequestAdapter, SSRFError } from 'flow-conductor';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
+import { SSRFError } from '@flow-conductor/core';
 
 const adapter = new FetchRequestAdapter();
 
@@ -2277,7 +2312,8 @@ try {
 For development or testing scenarios, you can configure validation:
 
 ```typescript
-import { FetchRequestAdapter, UrlValidationOptions } from 'flow-conductor';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
+import { UrlValidationOptions } from '@flow-conductor/core';
 
 // Allow localhost for local development
 const devAdapter = new FetchRequestAdapter({
@@ -2315,7 +2351,7 @@ For more security information, see [SECURITY.md](./SECURITY.md).
 #### Fetch Adapter Timeout
 
 ```typescript
-import { FetchRequestAdapter } from 'flow-conductor';
+import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 
 const adapter = new FetchRequestAdapter();
 
@@ -2354,7 +2390,7 @@ try {
 #### Axios Adapter Timeout
 
 ```typescript
-import { AxiosRequestAdapter } from 'flow-conductor/adapter-axios';
+import { AxiosRequestAdapter } from '@flow-conductor/adapter-axios';
 
 const adapter = new AxiosRequestAdapter();
 
@@ -2373,7 +2409,7 @@ const result = await begin(
 #### Superagent Adapter Timeout
 
 ```typescript
-import { SuperagentRequestAdapter } from 'flow-conductor/adapter-superagent';
+import { SuperagentRequestAdapter } from '@flow-conductor/adapter-superagent';
 
 const adapter = new SuperagentRequestAdapter();
 
@@ -2436,7 +2472,7 @@ npm install @flow-conductor/adapter-superagent @flow-conductor/core superagent
 
 # Or install the main package (adapters available via subpath exports)
 npm install flow-conductor
-# Then import adapters using: import { FetchRequestAdapter } from 'flow-conductor/adapter-fetch';
+# Then import adapters using: import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
 ```
 
 #### "Cannot read property 'body' of undefined" or Response handling differences
