@@ -1,6 +1,6 @@
 {
   "name": "@flow-conductor/core",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "type": "module",
   "description": "Core types and base classes for flow-conductor request adapters",
   "main": "./build/index.js",
@@ -29,6 +29,10 @@
     "./models/Handlers": {
       "types": "./build/models/Handlers.d.ts",
       "import": "./build/models/Handlers.js"
+    },
+    "./RequestBatch": {
+      "types": "./build/RequestBatch.d.ts",
+      "import": "./build/RequestBatch.js"
     }
   },
   "files": [
