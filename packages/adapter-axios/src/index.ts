@@ -9,4 +9,7 @@
  * automatic request/response transformation, and request cancellation.
  */
 
-export { default, AxiosRequestConfigType } from "./axios-request-adapter";
+export {
+  AxiosRequestAdapter,
+  type AxiosRequestConfigType,
+} from "./axios-request-adapter";

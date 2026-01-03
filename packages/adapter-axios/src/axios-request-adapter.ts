@@ -25,7 +25,7 @@ export type AxiosRequestConfigType = IRequestConfig &
  * );
  * ```
  */
-export default class AxiosRequestAdapter extends RequestAdapter<
+export class AxiosRequestAdapter extends RequestAdapter<
   AxiosResponse,
   AxiosRequestConfigType
 > {
