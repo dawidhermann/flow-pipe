@@ -9,4 +9,7 @@
  * where you need a reliable HTTP client.
  */
 
-export { default, NodeFetchRequestConfig } from "./node-fetch-request-adapter";
+export {
+  NodeFetchRequestAdapter,
+  type NodeFetchRequestConfig,
+} from "./node-fetch-request-adapter";

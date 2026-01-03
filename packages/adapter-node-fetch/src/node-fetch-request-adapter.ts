@@ -25,7 +25,7 @@ export type NodeFetchRequestConfig = IRequestConfig;
  * );
  * ```
  */
-export default class NodeFetchRequestAdapter extends RequestAdapter<
+export class NodeFetchRequestAdapter extends RequestAdapter<
   Response,
   NodeFetchRequestConfig
 > {
