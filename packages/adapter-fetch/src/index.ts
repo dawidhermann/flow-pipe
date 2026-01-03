@@ -9,4 +9,7 @@
  * where you want to avoid additional dependencies.
  */
 
-export { default, FetchRequestConfig } from "./fetch-request-adapter";
+export {
+  FetchRequestAdapter,
+  type FetchRequestConfig,
+} from "./fetch-request-adapter";

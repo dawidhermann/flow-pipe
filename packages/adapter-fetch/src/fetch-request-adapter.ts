@@ -23,7 +23,7 @@ export type FetchRequestConfig = IRequestConfig;
  * );
  * ```
  */
-export default class FetchRequestAdapter extends RequestAdapter<
+export class FetchRequestAdapter extends RequestAdapter<
   Response,
   FetchRequestConfig
 > {
