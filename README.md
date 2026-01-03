@@ -336,6 +336,8 @@ const result = await begin(
 - React/Vue frontend apps
 - Single-page applications
 - Anything where React Query fits better
+- **Long-running workflows that must survive crashes** (use Temporal.io instead)
+- **Critical business processes requiring durability** (use Step Functions/Inngest instead)
 
 🤔 **MAYBE** if:
 - You have 3-5 sequential API calls
@@ -363,8 +365,31 @@ Use flow-conductor when you have:
 | fetch/axios | Simple requests | ❌ Use those instead |
 | React Query | Frontend caching | ❌ Different problem |
 | Bull/BullMQ | Background jobs | ✅ flow-conductor = sync workflows |
-| Temporal | Complex orchestration | ✅ flow-conductor = simpler, lighter |
-| Inngest | Serverless workflows | ✅ flow-conductor = self-hosted |
+| Temporal | Complex orchestration | ✅ flow-conductor = simpler, lighter (but NOT durable) |
+| Inngest | Serverless workflows | ✅ flow-conductor = self-hosted (but NOT durable) |
+
+### ⚠️ Important: Durability and Crash Recovery
+
+**Flow-conductor is NOT a durable workflow engine.** It's an in-memory orchestration library designed for synchronous, short-lived workflows.
+
+- ❌ **No state persistence**: Workflow state is lost if the server crashes
+- ❌ **No automatic recovery**: Workflows don't resume after crashes
+- ✅ **Simple and lightweight**: Perfect for webhook processing, API orchestration, and request chains
+- ✅ **Synchronous execution**: Workflows complete in seconds/minutes
+
+**Use flow-conductor for:**
+- Webhook processing (can be retried by webhook provider)
+- API request orchestration
+- Short-lived workflows (< 5 minutes)
+- Scenarios where losing a workflow on crash is acceptable
+
+**Use Temporal.io / Step Functions / Inngest for:**
+- Long-running workflows (hours/days)
+- Critical business processes that must complete
+- Workflows that need to survive server crashes
+- Exactly-once execution guarantees
+
+See [Durability and Crash Recovery](./DOCUMENTATION.md#important-durability-and-crash-recovery) in the documentation for detailed comparison.
 
 ## Documentation
 

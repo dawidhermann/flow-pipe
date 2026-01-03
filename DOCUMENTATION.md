@@ -16,6 +16,125 @@ Flow-conductor is a **backend orchestration tool** for building complex API work
 - A React data fetching library (use React Query or RTK Query instead)
 - A caching solution (use Redis or similar)
 - A replacement for simple `fetch()` or `axios` calls
+- **A durable workflow engine** (like Temporal.io, AWS Step Functions, or Inngest)
+- **A transactional outbox pattern implementation**
+- **A state persistence or recovery system**
+
+### Important: Durability and Crash Recovery
+
+**Flow-conductor is an in-memory workflow orchestration library.** It does NOT provide durability guarantees or automatic crash recovery.
+
+#### What Happens on Server Crashes?
+
+If your server crashes **during** a workflow execution:
+
+1. **Workflow state is lost**: All in-memory state (intermediate results, progress) is lost
+2. **Partial execution may have occurred**: External APIs may have been called and state changed
+3. **No automatic recovery**: The workflow will NOT resume when the server restarts
+4. **Data consistency**: You may have partial state in external systems (e.g., order marked as "paid" but inventory not reserved)
+
+**Example scenario:**
+```typescript
+// If server crashes after step 2 completes but before step 3 starts:
+begin(
+  { config: { url: '/orders/123', method: 'PATCH', data: { status: 'paid' } } }, // ✅ Completed
+  adapter
+)
+.next({ config: { url: '/inventory/reserve', method: 'POST' } }) // ❌ Never executed
+.next({ config: { url: '/emails/send', method: 'POST' } }) // ❌ Never executed
+.execute();
+
+// Result: Order is marked as "paid" but inventory wasn't reserved
+// When server restarts, this workflow is gone - no automatic retry
+```
+
+#### Comparison to Durable Workflow Engines
+
+| Feature | flow-conductor | Temporal.io / Step Functions |
+|---------|----------------|------------------------------|
+| **State Persistence** | ❌ In-memory only | ✅ Persisted to database |
+| **Crash Recovery** | ❌ Workflow lost | ✅ Automatic resume from last checkpoint |
+| **Long-running Workflows** | ❌ Must complete in single process lifetime | ✅ Can span days/weeks |
+| **Guaranteed Execution** | ❌ Lost on crash | ✅ Eventually consistent |
+| **Use Case** | ✅ Synchronous, short-lived workflows | ✅ Long-running, durable workflows |
+| **Complexity** | ✅ Simple, lightweight | ⚠️ More complex setup |
+
+#### When to Use flow-conductor vs Durable Workflow Engines
+
+**Use flow-conductor when:**
+- ✅ Workflows complete in seconds/minutes (not hours/days)
+- ✅ Workflows are triggered synchronously (e.g., webhook handlers, API endpoints)
+- ✅ You can tolerate losing a workflow if the server crashes (e.g., webhook can be retried)
+- ✅ You want a simple, lightweight solution without external dependencies
+- ✅ You're building request orchestration, not long-running business processes
+
+**Use Temporal.io / Step Functions / Inngest when:**
+- ✅ Workflows must complete even if server crashes
+- ✅ Workflows can take hours or days to complete
+- ✅ You need guaranteed exactly-once execution
+- ✅ You need to resume workflows from checkpoints
+- ✅ You're building critical business processes (e.g., order fulfillment, payment processing)
+
+#### Transactional Outbox Pattern
+
+The **transactional outbox pattern** solves a different problem: ensuring that database changes and external API calls happen atomically. Flow-conductor does NOT implement this pattern.
+
+**If you need transactional guarantees:**
+- Use a transactional outbox pattern for database + external API consistency
+- Use flow-conductor for orchestrating the external API calls themselves
+- Consider combining both: use transactional outbox to queue workflow execution, then use flow-conductor to execute the workflow
+
+**Example combining transactional outbox + flow-conductor:**
+```typescript
+// 1. Transactional outbox ensures atomicity
+await db.transaction(async (tx) => {
+  await tx.insert('orders', orderData);
+  await tx.insert('outbox', { 
+    event: 'process_order',
+    payload: orderData 
+  });
+});
+
+// 2. Outbox processor picks up event and executes workflow
+// If server crashes here, outbox processor will retry
+const workflow = begin(/* ... */, adapter);
+await workflow.execute();
+```
+
+#### Best Practices for Crash Resilience
+
+If you need better crash resilience with flow-conductor:
+
+1. **Idempotent operations**: Design your API endpoints to be idempotent
+2. **External retry mechanisms**: Use webhook retries, message queues, or event sourcing
+3. **Compensation logic**: Implement rollback/compensation in error handlers
+4. **Checkpointing**: Manually persist critical state to database between steps if needed
+5. **Timeouts**: Set appropriate timeouts to prevent workflows from hanging indefinitely
+
+```typescript
+// Example: Manual checkpointing for critical workflows
+await begin(
+  { config: { url: '/orders/123', method: 'PATCH', data: { status: 'paid' } } },
+  adapter
+)
+.next({
+  config: async (prev) => {
+    // Manually save state to database before next step
+    await db.saveWorkflowState('order-123', { step: 2, orderId: 123 });
+    return { url: '/inventory/reserve', method: 'POST' };
+  }
+})
+.withErrorHandler(async (error) => {
+  // On error, check database for partial state and compensate
+  const state = await db.getWorkflowState('order-123');
+  if (state?.step === 2) {
+    await rollbackOrderStatus('order-123');
+  }
+})
+.execute();
+```
+
+**Summary**: Flow-conductor is designed for **synchronous, short-lived workflows** where simplicity and developer experience matter more than durability guarantees. For long-running, critical workflows that must survive crashes, use a dedicated durable workflow engine.
 
 ## Table of Contents
 

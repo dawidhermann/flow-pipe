@@ -44,62 +44,7 @@ We appreciate your help in keeping flow-conductor secure!
 
 ### SSRF Protection
 
-flow-conductor includes built-in protection against Server-Side Request Forgery (SSRF) attacks:
-
-#### Default Protection
-
-By default, all adapters validate URLs before making requests:
-
-- ✅ **Blocks private IP addresses**: 10.x.x.x, 172.16-31.x.x, 192.168.x.x, 169.254.x.x
-- ✅ **Blocks localhost addresses**: localhost, 127.0.0.1, ::1
-- ✅ **Restricts protocols**: Only `http://` and `https://` are allowed
-- ✅ **Validates URL format**: Ensures URLs are properly formatted
-
-**⚠️ IMPORTANT: Backend Usage Consideration**
-
-flow-conductor is designed for backend API services and microservice orchestration. In backend environments (Kubernetes, AWS VPC, Docker networks), services communicate using private IP addresses. The default blocking of private IPs will prevent the library from working in most enterprise infrastructure scenarios.
-
-**Recommendation**: For Node.js backend environments where you control the URLs being requested (not user-provided URLs), enable `allowPrivateIPs: true` by default. Only keep the private IP blocking enabled when the library acts as a proxy for URLs provided by end users, where SSRF protection is critical.
-
-#### Configuration
-
-For backend services and internal microservice communication, configure validation appropriately:
-
-```typescript
-import { FetchRequestAdapter } from '@flow-conductor/adapter-fetch';
-
-// Recommended for backend services (Kubernetes, VPC, Docker networks)
-const backendAdapter = new FetchRequestAdapter({
-  allowPrivateIPs: true  // Required for internal service communication
-});
-
-// Allow localhost for local development
-const devAdapter = new FetchRequestAdapter({
-  allowLocalhost: true
-});
-
-// For user-facing proxies (where SSRF protection is critical)
-// Keep default blocking enabled - do NOT set allowPrivateIPs: true
-const proxyAdapter = new FetchRequestAdapter();
-
-// Custom protocol allowlist
-const customAdapter = new FetchRequestAdapter({
-  allowedProtocols: ['http:', 'https:', 'ws:', 'wss:']
-});
-```
-
-**⚠️ WARNING**: Disabling or relaxing URL validation can expose your application to SSRF attacks. Only do this if you fully understand the security implications and trust all URL inputs.
-
-#### Disabling Validation (Not Recommended)
-
-```typescript
-// ⚠️ SECURITY RISK: Only use in trusted environments
-const unsafeAdapter = new FetchRequestAdapter({
-  disableValidation: true
-});
-```
-
-### Error Handling
+flow-conductor includes built-in protection against Server-Side Request Forgery (SSRF) attacks. For detailed information about SSRF protection, default behavior, configuration options, and best practices, see [SSRF Protection](./DOCUMENTATION.md#ssrf-protection) in the documentation.
 
 When a potentially dangerous URL is detected, flow-conductor throws an `SSRFError`:
 
@@ -107,7 +52,7 @@ When a potentially dangerous URL is detected, flow-conductor throws an `SSRFErro
 import { SSRFError } from '@flow-conductor/core';
 
 try {
-  await RequestChain.begin(
+  await begin(
     { config: { url: 'http://localhost:3000', method: 'GET' } },
     adapter
   ).execute();
@@ -199,54 +144,13 @@ const url = 'http://api.example.com/data';
 
 ### 5. Set Request Timeouts
 
-Configure appropriate timeouts to prevent hanging requests:
+**Important**: flow-conductor does **not** set default timeouts for requests. You must configure timeouts manually to prevent requests from hanging indefinitely.
 
-```typescript
-// For Axios adapter
-const adapter = new AxiosRequestAdapter();
-const result = await RequestChain.begin(
-  {
-    config: {
-      url: 'https://api.example.com/data',
-      method: 'GET',
-      timeout: 5000 // 5 second timeout
-    }
-  },
-  adapter
-).execute();
-
-// For Fetch adapter (Node.js 18+)
-const adapter = new FetchRequestAdapter();
-const result = await RequestChain.begin(
-  {
-    config: {
-      url: 'https://api.example.com/data',
-      method: 'GET',
-      signal: AbortSignal.timeout(5000) // 5 second timeout
-    }
-  },
-  adapter
-).execute();
-```
+For detailed timeout configuration examples for all adapters, see [Request Timeouts](./BEST_PRACTICES.md#request-timeouts) in Best Practices or [Adapters](./DOCUMENTATION.md#adapters) in the documentation.
 
 ### 6. Handle Errors Gracefully
 
-Always handle errors and avoid exposing sensitive information:
-
-```typescript
-await RequestChain.begin(
-  { config: { url: 'https://api.example.com/data', method: 'GET' } },
-  adapter
-)
-  .withErrorHandler((error) => {
-    // Log error details server-side (not exposed to client)
-    console.error('Request failed:', error);
-    
-    // Return generic error to client
-    throw new Error('Request failed. Please try again later.');
-  })
-  .execute();
-```
+Always handle errors and avoid exposing sensitive information. For comprehensive error handling examples including chain-level and stage-level handlers, see [Error Handler](./DOCUMENTATION.md#handlers) in the documentation.
 
 ### 7. Validate Response Data
 
