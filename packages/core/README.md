@@ -18,7 +18,8 @@ This package provides the foundational types and classes for building request ad
 
 - **`RequestAdapter`** - Base abstract class for all request adapters
 - **`RequestChain`** - Main class for chaining requests together
-- **`RequestManager`** - Base class for request management (extended by `RequestChain`)
+- **`RequestBatch`** - Class for executing multiple requests in parallel
+- **`RequestManager`** - Base class for request management (extended by `RequestChain` and `RequestBatch`)
 
 ### Types
 
@@ -144,6 +145,128 @@ chain.addAll([
 const results = await chain.executeAll();
 ```
 
+### Using RequestBatch
+
+`RequestBatch` executes multiple requests in parallel (or with a concurrency limit). It supports both homogeneous batches (all requests return the same type) and heterogeneous batches (each request can return a different type).
+
+#### Homogeneous Batch
+
+All requests return the same type:
+
+```typescript
+import { batch } from "@flow-conductor/core";
+import { MyAdapter } from "./MyAdapter";
+
+const adapter = new MyAdapter();
+
+// Execute multiple requests in parallel
+const batchInstance = batch(
+  [
+    { config: { url: "https://api.example.com/users/1", method: "GET" } },
+    { config: { url: "https://api.example.com/users/2", method: "GET" } },
+    { config: { url: "https://api.example.com/users/3", method: "GET" } }
+  ],
+  adapter
+);
+
+const results = await batchInstance.execute(); // Returns User[]
+```
+
+#### Heterogeneous Batch
+
+Each request can return a different type (using tuple types for type safety):
+
+```typescript
+import { batch } from "@flow-conductor/core";
+import { MyAdapter } from "./MyAdapter";
+
+const adapter = new MyAdapter();
+
+// Each request returns a different type
+const batchInstance = batch(
+  [
+    {
+      config: { url: "https://api.example.com/users/1", method: "GET" },
+      mapper: (r) => r.json() as Promise<User>
+    },
+    {
+      config: { url: "https://api.example.com/products/1", method: "GET" },
+      mapper: (r) => r.json() as Promise<Product>
+    },
+    {
+      config: { url: "https://api.example.com/orders/1", method: "GET" },
+      mapper: (r) => r.json() as Promise<Order>
+    }
+  ],
+  adapter
+);
+
+const results = await batchInstance.execute(); // Returns [User, Product, Order]
+```
+
+#### Concurrency Control
+
+Limit the number of concurrent requests:
+
+```typescript
+import { batch } from "@flow-conductor/core";
+
+const batchInstance = batch([...requests], adapter)
+  .withConcurrency(5); // Execute max 5 requests at a time
+
+const results = await batchInstance.execute();
+```
+
+#### Using Handlers
+
+`RequestBatch` supports the same handlers as `RequestManager`:
+
+```typescript
+import { batch } from "@flow-conductor/core";
+
+const batchInstance = batch([...requests], adapter)
+  .withResultHandler((results) => {
+    console.log("Batch completed:", results);
+  })
+  .withErrorHandler((error) => {
+    console.error("Batch error:", error);
+  })
+  .withFinishHandler(() => {
+    console.log("Batch finished");
+  });
+
+const results = await batchInstance.execute();
+```
+
+#### Nested in RequestChain
+
+`RequestBatch` can be nested within a `RequestChain`:
+
+```typescript
+import { begin, batch } from "@flow-conductor/core";
+
+const adapter = new MyAdapter();
+
+const result = await begin(
+  { config: { url: "https://api.example.com/users", method: "GET" } },
+  adapter
+)
+  .next({
+    request: batch(
+      [
+        { config: { url: "https://api.example.com/posts", method: "GET" } },
+        { config: { url: "https://api.example.com/comments", method: "GET" } }
+      ],
+      adapter
+    ),
+    mapper: (batchResults) => {
+      // Process the batch results
+      return batchResults;
+    }
+  })
+  .execute();
+```
+
 ## Type Definitions
 
 ### IRequestConfig
@@ -187,7 +310,9 @@ abstract class RequestAdapter<ExecutionResult, RequestConfig extends IRequestCon
 - `RequestAdapter` - Base adapter class
 - `RequestManager` - Base manager class
 - `RequestChain` - Main chain class
+- `RequestBatch` - Batch request class for parallel execution
 - `begin` - Function alternative to `RequestChain.begin`
+- `batch` - Function alternative to `RequestBatch.batch`
 
 ### Type Exports
 
