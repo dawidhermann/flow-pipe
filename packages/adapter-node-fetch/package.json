@@ -1,6 +1,6 @@
 {
   "name": "@flow-conductor/adapter-node-fetch",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "description": "node-fetch adapter for flow-conductor",
   "main": "./build/index.js",
