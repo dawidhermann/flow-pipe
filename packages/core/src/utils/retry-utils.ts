@@ -17,7 +17,7 @@ export function getErrorStatus(error: Error): number | undefined {
 
   // Axios errors have response.status
   const anyError = error as any;
-  if (anyError?.response?.status) {
+  if (anyError?.response && typeof anyError.response.status === "number") {
     const status = anyError.response.status;
     if (isValidStatus(status)) {
       return status;
@@ -25,7 +25,7 @@ export function getErrorStatus(error: Error): number | undefined {
   }
 
   // Some adapters might put status directly on error
-  if (anyError?.status) {
+  if (typeof anyError?.status === "number") {
     const status = anyError.status;
     if (isValidStatus(status)) {
       return status;
@@ -33,7 +33,7 @@ export function getErrorStatus(error: Error): number | undefined {
   }
 
   // Check for statusCode (some libraries use this)
-  if (anyError?.statusCode) {
+  if (typeof anyError?.statusCode === "number") {
     const status = anyError.statusCode;
     if (isValidStatus(status)) {
       return status;
