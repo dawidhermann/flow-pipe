@@ -1,6 +1,6 @@
 {
   "name": "@flow-conductor/adapter-superagent",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
   "description": "Superagent adapter for flow-conductor",
   "main": "./build/index.js",
