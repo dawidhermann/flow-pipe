@@ -39,6 +39,194 @@ describe("retryUtils", () => {
       error.status = 404;
       assert.strictEqual(getErrorStatus(error), 500);
     });
+
+    test("should prioritize response.status over statusCode", () => {
+      const error = new Error("Request failed") as any;
+      error.response = { status: 429 };
+      error.statusCode = 503;
+      assert.strictEqual(getErrorStatus(error), 429);
+    });
+
+    test("should prioritize status over statusCode when response.status is not available", () => {
+      const error = new Error("Request failed") as any;
+      error.status = 400;
+      error.statusCode = 500;
+      assert.strictEqual(getErrorStatus(error), 400);
+    });
+
+    test("should handle status code 0", () => {
+      const error = new Error("Request failed") as any;
+      error.response = { status: 0 };
+      assert.strictEqual(getErrorStatus(error), 0);
+    });
+
+    test("should handle various HTTP status codes", () => {
+      const statusCodes = [200, 201, 301, 400, 401, 403, 404, 429, 500, 502, 503, 504];
+      for (const code of statusCodes) {
+        const error = new Error("Request failed") as any;
+        error.response = { status: code };
+        assert.strictEqual(getErrorStatus(error), code, `Should handle status code ${code}`);
+      }
+    });
+
+    test("should return undefined when response exists but status is missing", () => {
+      const error = new Error("Request failed") as any;
+      error.response = {};
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should return undefined when response exists but status is null", () => {
+      const error = new Error("Request failed") as any;
+      error.response = { status: null };
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should return undefined when response exists but status is undefined", () => {
+      const error = new Error("Request failed") as any;
+      error.response = { status: undefined };
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should ignore non-number status in response.status", () => {
+      const error = new Error("Request failed") as any;
+      error.response = { status: "500" };
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should ignore non-number status in error.status", () => {
+      const error = new Error("Request failed") as any;
+      error.status = "404";
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should ignore non-number status in error.statusCode", () => {
+      const error = new Error("Request failed") as any;
+      error.statusCode = "503";
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should ignore null status in error.status", () => {
+      const error = new Error("Request failed") as any;
+      error.status = null;
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should ignore undefined status in error.status", () => {
+      const error = new Error("Request failed") as any;
+      error.status = undefined;
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should ignore null status in error.statusCode", () => {
+      const error = new Error("Request failed") as any;
+      error.statusCode = null;
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should ignore undefined status in error.statusCode", () => {
+      const error = new Error("Request failed") as any;
+      error.statusCode = undefined;
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should handle response.status as 0 when other status properties exist", () => {
+      const error = new Error("Request failed") as any;
+      error.response = { status: 0 };
+      error.status = 404;
+      error.statusCode = 500;
+      assert.strictEqual(getErrorStatus(error), 0);
+    });
+
+    test("should handle negative status codes", () => {
+      const error = new Error("Request failed") as any;
+      error.response = { status: -1 };
+      assert.strictEqual(getErrorStatus(error), -1);
+    });
+
+    test("should handle very large status codes", () => {
+      const error = new Error("Request failed") as any;
+      error.response = { status: 999999 };
+      assert.strictEqual(getErrorStatus(error), 999999);
+    });
+
+    test("should return undefined when response is null", () => {
+      const error = new Error("Request failed") as any;
+      error.response = null;
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should return undefined when response is undefined", () => {
+      const error = new Error("Request failed") as any;
+      error.response = undefined;
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should return undefined when response.status is NaN", () => {
+      const error = new Error("Request failed") as any;
+      error.response = { status: NaN };
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should return undefined when response.status is Infinity", () => {
+      const error = new Error("Request failed") as any;
+      error.response = { status: Infinity };
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should return undefined when response.status is -Infinity", () => {
+      const error = new Error("Request failed") as any;
+      error.response = { status: -Infinity };
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should handle float status codes", () => {
+      const error = new Error("Request failed") as any;
+      error.response = { status: 500.5 };
+      // typeof 500.5 === "number" is true, so it will return the float
+      assert.strictEqual(getErrorStatus(error), 500.5);
+    });
+
+    test("should return undefined when error.status is NaN", () => {
+      const error = new Error("Request failed") as any;
+      error.status = NaN;
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should return undefined when error.statusCode is NaN", () => {
+      const error = new Error("Request failed") as any;
+      error.statusCode = NaN;
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should return undefined when response is a string", () => {
+      const error = new Error("Request failed") as any;
+      error.response = "invalid";
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should return undefined when response is a number", () => {
+      const error = new Error("Request failed") as any;
+      error.response = 123;
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should return undefined when response is an array", () => {
+      const error = new Error("Request failed") as any;
+      error.response = [];
+      assert.strictEqual(getErrorStatus(error), undefined);
+    });
+
+    test("should handle status code 0 in error.status", () => {
+      const error = new Error("Request failed") as any;
+      error.status = 0;
+      assert.strictEqual(getErrorStatus(error), 0);
+    });
+
+    test("should handle status code 0 in error.statusCode", () => {
+      const error = new Error("Request failed") as any;
+      error.statusCode = 0;
+      assert.strictEqual(getErrorStatus(error), 0);
+    });
   });
 
   describe("isNetworkError", () => {

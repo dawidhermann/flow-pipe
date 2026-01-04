@@ -243,7 +243,7 @@ export class RequestBatch<
   ): Promise<any[]> => {
     // Filter out stages that don't meet their preconditions
     const stagesToExecute = requestEntityList.filter(
-      (stage) => !stage.precondition || stage.precondition()
+      (stage) => stage.precondition?.() ?? true // If precondition is not provided, execute the stage
     );
 
     // Track original indices to preserve order (important for tuple types)
