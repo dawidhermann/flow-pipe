@@ -10,22 +10,34 @@
  * @returns The HTTP status code if available, undefined otherwise
  */
 export function getErrorStatus(error: Error): number | undefined {
+  // Helper to check if a number is a valid HTTP status code
+  const isValidStatus = (value: number): boolean => {
+    return !Number.isNaN(value) && Number.isFinite(value);
+  };
+
   // Axios errors have response.status
-  if (
-    typeof (error as any).response !== "undefined" &&
-    typeof (error as any).response.status === "number"
-  ) {
-    return (error as any).response.status;
+  const anyError = error as any;
+  if (anyError?.response && typeof anyError.response.status === "number") {
+    const status = anyError.response.status;
+    if (isValidStatus(status)) {
+      return status;
+    }
   }
 
   // Some adapters might put status directly on error
-  if (typeof (error as any).status === "number") {
-    return (error as any).status;
+  if (typeof anyError?.status === "number") {
+    const status = anyError.status;
+    if (isValidStatus(status)) {
+      return status;
+    }
   }
 
   // Check for statusCode (some libraries use this)
-  if (typeof (error as any).statusCode === "number") {
-    return (error as any).statusCode;
+  if (typeof anyError?.statusCode === "number") {
+    const status = anyError.statusCode;
+    if (isValidStatus(status)) {
+      return status;
+    }
   }
 
   return undefined;
